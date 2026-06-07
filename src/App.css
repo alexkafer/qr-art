@@ -1,0 +1,30 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fafafa;
+  color: #222;
+}
+
+fieldset {
+  margin: 0;
+  min-width: 0;
+}
+
+input, select, button {
+  font-family: inherit;
+  color: #222;
+  background: #fff;
+}
+
+code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  color: #333;
+}
+
+h1, h2, h3, h4, p, label, span, legend, strong {
+  color: #222;
+}
