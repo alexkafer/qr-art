@@ -36,11 +36,11 @@ export function QRArtGenerator({
   const [editorWidth, setEditorWidth] = useState(defaultArt.width)
   const [editorHeight, setEditorHeight] = useState(defaultArt.height)
 
-  const optimalPos = useMemo(() => {
+  const optimalPos = useMemo((): { row: number; col: number } => {
     if (!useArt || editorWidth === 0 || editorHeight === 0) return { row: 0, col: 0 }
     const bw = artBorder ? editorWidth + 2 : editorWidth
     const bh = artBorder ? editorHeight + 2 : editorHeight
-    return findOptimalPosition(urlPrefix, version, ecLevel, bw, bh)
+    return findOptimalPosition(urlPrefix, version, ecLevel, bw, bh) ?? { row: 0, col: 0 }
   }, [urlPrefix, version, ecLevel, editorWidth, editorHeight, useArt, artBorder])
 
   const artPixels = useMemo(() => {
