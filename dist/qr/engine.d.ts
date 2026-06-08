@@ -41,6 +41,7 @@ export declare function generateQRWithArt(options: ReverseOptions): {
     maxFlips: number;
     skippedFlips: number;
     constrainedPixels: Set<string>;
+    blackPixelCount: number;
 };
 /**
  * Find the optimal position for art within the QR grid.

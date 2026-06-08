@@ -90,7 +90,8 @@ export function generateQRWithArt(options: ReverseOptions): {
   overlayFlips: number;
   maxFlips: number;
   skippedFlips: number;
-  constrainedPixels: Set<string>; // "row,col" of art pixels that couldn't be satisfied
+  constrainedPixels: Set<string>;
+  blackPixelCount: number;
 } {
   const { urlPrefix, version, ecLevel, artPixels, maskPattern: requestedMask } = options;
   const ver = getVersion(version);
@@ -107,13 +108,18 @@ export function generateQRWithArt(options: ReverseOptions): {
       urlPrefix, version, ecLevel, artPixels, mask,
       totalDataCodewords, ecCodewordsPerBlock, blockInfo
     );
-    // Score: prefer all-ASCII suffix, then fewer non-ASCII, then more art match, then fewer overlay flips
+    // Score: prefer fewest total black pixels (better art contrast),
+    // then fewer non-ASCII suffix bytes, then fewer overlay flips
+    const blackPixels = result.grid.modules.reduce(
+      (sum, row) => sum + row.reduce((s, m) => s + m, 0), 0
+    );
     const nonAsciiCount = result.suffixBytes.filter(b => b > 127).length;
     const isBetter = !bestResult ||
       nonAsciiCount < bestResult.suffixBytes.filter(b => b > 127).length ||
       (nonAsciiCount === bestResult.suffixBytes.filter(b => b > 127).length && (
-        result.artMatch > bestResult.artMatch ||
-        (result.artMatch === bestResult.artMatch && result.overlayFlips < bestResult.overlayFlips)
+        blackPixels < (bestResult.grid.modules.reduce((s, r) => s + r.reduce((a, m) => a + m, 0), 0)) ||
+        (blackPixels === (bestResult.grid.modules.reduce((s, r) => s + r.reduce((a, m) => a + m, 0), 0)) &&
+          result.overlayFlips < bestResult.overlayFlips)
       ));
     if (isBetter) {
       bestResult = { ...result, maskPattern: mask };
@@ -221,17 +227,46 @@ for (let c = 0x30; c <= 0x39; c++) URL_SAFE_CHARS.push(c); // 0-9
 URL_SAFE_CHARS.push(0x2D, 0x5F, 0x2E, 0x7E); // - _ . ~
 
 /**
- * Find a URL-safe byte value that satisfies art bit constraints.
+ * Find a byte value that satisfies art bit constraints and minimizes black pixels.
+ * For each free bit (not constrained by art), choose the value that makes the
+ * corresponding QR module white: raw_bit should equal mask_bit so visual = raw XOR mask = 0.
+ * 
  * constrainedMask: bitmask of which bits are locked by art
  * constrainedValue: required values for those bits
- * Returns the best URL-safe char, or a printable fallback.
+ * freeBitMaskValues: for each free bit position, the mask pattern value at that module's position
+ *                    (so we can set raw = mask to get white). Map from bit position (0-7) to mask value.
+ */
+function findWhitenedChar(
+  constrainedMask: number,
+  constrainedValue: number,
+  freeBitMaskValues: Map<number, number>,
+): number {
+  // Start with constrained bits
+  let result = constrainedValue & constrainedMask;
+
+  // For each free bit, set it to the mask value at that position → visual white
+  for (let bit = 0; bit < 8; bit++) {
+    if (constrainedMask & (1 << bit)) continue; // constrained, skip
+    const maskVal = freeBitMaskValues.get(bit);
+    if (maskVal !== undefined && maskVal === 1) {
+      result |= (1 << bit);
+    }
+    // if maskVal is 0, leave bit as 0 (already is)
+  }
+
+  return result;
+}
+
+/**
+ * Find a URL-safe byte value that satisfies art bit constraints.
+ * Used as fallback when URL-safety matters more than whitening.
  */
 function findUrlSafeChar(constrainedMask: number, constrainedValue: number): number {
   // Try URL-safe characters first
   for (const ch of URL_SAFE_CHARS) {
     if ((ch & constrainedMask) === constrainedValue) return ch;
   }
-  // Fallback: try all printable ASCII (0x21-0x7E, skip space)
+  // Fallback: try all printable ASCII
   for (let ch = 0x21; ch <= 0x7E; ch++) {
     if ((ch & constrainedMask) === constrainedValue) return ch;
   }
@@ -239,7 +274,6 @@ function findUrlSafeChar(constrainedMask: number, constrainedValue: number): num
   for (let ch = 1; ch <= 255; ch++) {
     if ((ch & constrainedMask) === constrainedValue) return ch;
   }
-  // Truly impossible (all 8 bits constrained to 0) — return the constrained value
   return constrainedValue;
 }
 
@@ -321,6 +355,29 @@ function buildArtQR(
   const totalCharCount = Math.min(lastCharIndex + 1, maxCharCount);
   const suffixLength = Math.max(0, totalCharCount - urlPrefix.length);
 
+  // Step 5b: Build reverse map from sequential bit index → module position
+  // This lets us find the mask bit for any free bit in suffix bytes
+  const seqBitToModulePos = new Map<number, [number, number]>();
+  for (const [pos, bitIndex] of positionToBitIndex) {
+    if (bitIndex >= dataBitCount) continue;
+    const interleavedCWIndex = Math.floor(bitIndex / 8);
+    const bitWithinCW = 7 - (bitIndex % 8);
+    if (interleavedCWIndex >= dataBlockMap.length) continue;
+    const mapping = dataBlockMap[interleavedCWIndex];
+    const { blockIndex, posInBlock } = mapping;
+    const g1Count = blockInfo.group1[0];
+    const g1Size = blockInfo.group1[1];
+    let seqIndex: number;
+    if (blockIndex < g1Count) {
+      seqIndex = blockIndex * g1Size + posInBlock;
+    } else {
+      seqIndex = g1Count * g1Size + (blockIndex - g1Count) * (blockInfo.group2?.[1] ?? 0) + posInBlock;
+    }
+    const seqBitIndex = seqIndex * 8 + (7 - bitWithinCW);
+    const [r, c] = pos.split(',').map(Number);
+    seqBitToModulePos.set(seqBitIndex, [r, c]);
+  }
+
   // Step 6: Build suffix bytes from art pixel data
   // Track which bits in each suffix byte are constrained by art
   const suffixConstraints: { mask: number; value: number }[] = Array.from(
@@ -344,12 +401,25 @@ function buildArtQR(
     }
   }
 
-  // For each suffix byte, find a URL-safe character that satisfies art constraints.
-  // URL-safe path chars: A-Z, a-z, 0-9, -, _, ., ~
+  // For each suffix byte, set free bits to minimize black pixels (whiten).
+  // Free bits are set so raw_bit = mask_bit → visual module = 0 (white).
   const suffixBytes = new Uint8Array(suffixLength);
   for (let i = 0; i < suffixLength; i++) {
     const { mask: constrainedMask, value: constrainedValue } = suffixConstraints[i];
-    suffixBytes[i] = findUrlSafeChar(constrainedMask, constrainedValue);
+
+    // Build map of free bit positions → mask values at their module locations
+    const freeBitMaskValues = new Map<number, number>();
+    const charIndex = urlPrefix.length + i;
+    for (let bit = 0; bit < 8; bit++) {
+      if (constrainedMask & (1 << bit)) continue; // constrained by art
+      const seqBit = 12 + charIndex * 8 + (7 - bit);
+      const modulePos = seqBitToModulePos.get(seqBit);
+      if (modulePos) {
+        freeBitMaskValues.set(bit, getMaskBit(mask, modulePos[0], modulePos[1]));
+      }
+    }
+
+    suffixBytes[i] = findWhitenedChar(constrainedMask, constrainedValue, freeBitMaskValues);
   }
 
   // Step 7: Build full URL and generate forward QR

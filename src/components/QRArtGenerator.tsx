@@ -18,7 +18,7 @@ export interface QRArtGeneratorProps {
 }
 
 export function QRArtGenerator({
-  defaultUrl = 'https://robynandalex.com/',
+  defaultUrl = 'https://alexkafer.com/',
   defaultVersion = 5,
   defaultEcLevel = 'L',
   showModuleMap = true,

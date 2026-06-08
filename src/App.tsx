@@ -17,7 +17,7 @@ let layerIdCounter = 1
 function makeLayerId() { return `layer-${layerIdCounter++}` }
 
 function App() {
-  const [urlPrefix, setUrlPrefix] = useState('https://robynandalex.com/')
+  const [urlPrefix, setUrlPrefix] = useState('https://alexkafer.com/')
   const [version, setVersion] = useState(5)
   const [ecLevel, setEcLevel] = useState<ErrorCorrectionLevel>('L')
   const [maskPattern, setMaskPattern] = useState<number | undefined>(undefined)

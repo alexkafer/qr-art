@@ -462,8 +462,8 @@ function R(e) {
 		7
 	] : [a], f = null;
 	for (let e of d) {
-		let a = ee(t, n, r, i, e, s, c, u), o = a.suffixBytes.filter((e) => e > 127).length;
-		(!f || o < f.suffixBytes.filter((e) => e > 127).length || o === f.suffixBytes.filter((e) => e > 127).length && (a.artMatch > f.artMatch || a.artMatch === f.artMatch && a.overlayFlips < f.overlayFlips)) && (f = {
+		let a = V(t, n, r, i, e, s, c, u), o = a.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0), l = a.suffixBytes.filter((e) => e > 127).length;
+		(!f || l < f.suffixBytes.filter((e) => e > 127).length || l === f.suffixBytes.filter((e) => e > 127).length && (o < f.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0) || o === f.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0) && a.overlayFlips < f.overlayFlips)) && (f = {
 			...a,
 			maskPattern: e
 		});
@@ -507,13 +507,16 @@ for (let e = 65; e <= 90; e++) B.push(e);
 for (let e = 97; e <= 122; e++) B.push(e);
 for (let e = 48; e <= 57; e++) B.push(e);
 B.push(45, 95, 46, 126);
-function V(e, t) {
-	for (let n of B) if ((n & e) === t) return n;
-	for (let n = 33; n <= 126; n++) if ((n & e) === t) return n;
-	for (let n = 1; n <= 255; n++) if ((n & e) === t) return n;
-	return t;
+function ee(e, t, n) {
+	let r = t & e;
+	for (let t = 0; t < 8; t++) {
+		if (e & 1 << t) continue;
+		let i = n.get(t);
+		i !== void 0 && i === 1 && (r |= 1 << t);
+	}
+	return r;
 }
-function ee(e, t, n, r, i, a, o, s) {
+function V(e, t, n, r, i, a, o, s) {
 	let c = A(C(t)), u = /* @__PURE__ */ new Map();
 	c.forEach(([e, t], n) => {
 		u.set(`${e},${t}`, n);
@@ -534,7 +537,17 @@ function ee(e, t, n, r, i, a, o, s) {
 	}
 	let g = m - 1;
 	for (let { seqBitIndex: e } of h) e >= m && e > g && (g = e);
-	let _ = Math.floor((g - 12) / 8), v = Math.min(_ + 1, p), y = Math.max(0, v - e.length), b = Array.from({ length: y }, () => ({
+	let _ = Math.floor((g - 12) / 8), v = Math.min(_ + 1, p), y = Math.max(0, v - e.length), b = /* @__PURE__ */ new Map();
+	for (let [e, t] of u) {
+		if (t >= f) continue;
+		let n = Math.floor(t / 8), r = 7 - t % 8;
+		if (n >= d.length) continue;
+		let { blockIndex: i, posInBlock: a } = d[n], o = s.group1[0], c = s.group1[1], l;
+		l = i < o ? i * c + a : o * c + (i - o) * (s.group2?.[1] ?? 0) + a;
+		let u = l * 8 + (7 - r), [p, m] = e.split(",").map(Number);
+		b.set(u, [p, m]);
+	}
+	let x = Array.from({ length: y }, () => ({
 		mask: 0,
 		value: 0
 	}));
@@ -542,59 +555,64 @@ function ee(e, t, n, r, i, a, o, s) {
 		let r = Math.floor((t - 12) / 8), i = 7 - (t - 12) % 8;
 		if (r < e.length || r >= v) continue;
 		let a = r - e.length;
-		a >= 0 && a < y && (b[a].mask |= 1 << i, n && (b[a].value |= 1 << i));
+		a >= 0 && a < y && (x[a].mask |= 1 << i, n && (x[a].value |= 1 << i));
 	}
-	let x = new Uint8Array(y);
-	for (let e = 0; e < y; e++) {
-		let { mask: t, value: n } = b[e];
-		x[e] = V(t, n);
+	let S = new Uint8Array(y);
+	for (let t = 0; t < y; t++) {
+		let { mask: n, value: r } = x[t], a = /* @__PURE__ */ new Map(), o = e.length + t;
+		for (let e = 0; e < 8; e++) {
+			if (n & 1 << e) continue;
+			let t = 12 + o * 8 + (7 - e), r = b.get(t);
+			r && a.set(e, P(i, r[0], r[1]));
+		}
+		S[t] = ee(n, r, a);
 	}
-	let S = e + Array.from(x).map((e) => String.fromCharCode(e)).join(""), w = L({
-		data: S,
+	let w = e + Array.from(S).map((e) => String.fromCharCode(e)).join(""), T = L({
+		data: w,
 		version: t,
 		ecLevel: n,
 		maskPattern: i
-	}), T = 0;
-	for (let e of r) e.row < w.size && e.col < w.size && w.modules[e.row][e.col] === e.value && T++;
-	let E = l(t).ecCodewordsPerBlock[n], D = s.group1[0] + (s.group2?.[0] ?? 0), O = Math.floor(E / 2), k = /* @__PURE__ */ new Map();
+	}), E = 0;
+	for (let e of r) e.row < T.size && e.col < T.size && T.modules[e.row][e.col] === e.value && E++;
+	let D = l(t).ecCodewordsPerBlock[n], O = s.group1[0] + (s.group2?.[0] ?? 0), k = Math.floor(D / 2), j = /* @__PURE__ */ new Map();
 	c.forEach(([e, t], n) => {
-		k.set(`${e},${t}`, Math.floor(n / 8));
+		j.set(`${e},${t}`, Math.floor(n / 8));
 	});
-	let j = {
-		size: w.size,
-		modules: w.modules.map((e) => [...e]),
-		types: w.types.map((e) => [...e])
-	}, M = /* @__PURE__ */ new Map();
-	for (let e = 0; e < D; e++) M.set(e, /* @__PURE__ */ new Set());
-	let N = 0, F = 0, I = /* @__PURE__ */ new Set();
+	let M = {
+		size: T.size,
+		modules: T.modules.map((e) => [...e]),
+		types: T.types.map((e) => [...e])
+	}, N = /* @__PURE__ */ new Map();
+	for (let e = 0; e < O; e++) N.set(e, /* @__PURE__ */ new Set());
+	let F = 0, I = 0, R = /* @__PURE__ */ new Set();
 	for (let e of r) {
-		if (e.row >= w.size || e.col >= w.size || j.modules[e.row][e.col] === e.value) continue;
-		let t = `${e.row},${e.col}`, n = k.get(t);
+		if (e.row >= T.size || e.col >= T.size || M.modules[e.row][e.col] === e.value) continue;
+		let t = `${e.row},${e.col}`, n = j.get(t);
 		if (n === void 0) continue;
 		let r;
 		if (n < d.length) r = d[n].blockIndex;
 		else {
 			let e = n - d.length;
-			r = e < D * E ? e % D : 0;
+			r = e < O * D ? e % O : 0;
 		}
-		let i = M.get(r);
-		if (!i.has(n) && i.size >= O) {
-			F++, I.add(t);
+		let i = N.get(r);
+		if (!i.has(n) && i.size >= k) {
+			I++, R.add(t);
 			continue;
 		}
-		j.modules[e.row][e.col] = e.value, i.add(n), N++;
+		M.modules[e.row][e.col] = e.value, i.add(n), F++;
 	}
-	let R = O * D, z = N > 0 ? j : w, B = 0;
-	for (let e of r) e.row < z.size && e.col < z.size && z.modules[e.row][e.col] === e.value && B++;
+	let z = k * O, B = F > 0 ? M : T, V = 0;
+	for (let e of r) e.row < B.size && e.col < B.size && B.modules[e.row][e.col] === e.value && V++;
 	return {
-		grid: z,
-		decodedUrl: S,
-		suffixBytes: Array.from(x),
-		artMatch: B,
-		overlayFlips: N,
-		maxFlips: R,
-		skippedFlips: F,
-		constrainedPixels: I
+		grid: B,
+		decodedUrl: w,
+		suffixBytes: Array.from(S),
+		artMatch: V,
+		overlayFlips: F,
+		maxFlips: z,
+		skippedFlips: I,
+		constrainedPixels: R
 	};
 }
 function te(e, t, n) {
@@ -3624,7 +3642,7 @@ function $(e, t, n) {
 }
 //#endregion
 //#region src/components/QRArtGenerator.tsx
-function le({ defaultUrl: n = "https://robynandalex.com/", defaultVersion: s = 5, defaultEcLevel: c = "L", showModuleMap: l = !0, className: u }) {
+function le({ defaultUrl: n = "https://alexkafer.com/", defaultVersion: s = 5, defaultEcLevel: c = "L", showModuleMap: l = !0, className: u }) {
 	let [d, f] = r(n), [p, m] = r(s), [h, g] = r(c), [_, v] = r(void 0), [y, b] = r(!0), [x, S] = r(!0), C = J["R♥A"], [w, T] = r(C.grid.map((e) => [...e])), [E, D] = r(C.width), [O, k] = r(C.height), A = t(() => !y || E === 0 || O === 0 ? {
 		row: 0,
 		col: 0
