@@ -18,7 +18,7 @@ export interface QRArtGeneratorProps {
 }
 
 export function QRArtGenerator({
-  defaultUrl = 'https://alexkafer.com/labs/qr-art/',
+  defaultUrl = 'https://alexkafer.com/labs/qr-art?code=',
   defaultVersion = 5,
   defaultEcLevel = 'L',
   showModuleMap = true,

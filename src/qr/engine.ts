@@ -101,7 +101,7 @@ export function generateQRWithArt(options: ReverseOptions): {
 
   const masksToTry = requestedMask !== undefined ? [requestedMask] : [0, 1, 2, 3, 4, 5, 6, 7];
 
-  let bestResult: { grid: QRGrid; decodedUrl: string; suffixBytes: number[]; maskPattern: number; artMatch: number; overlayFlips: number; maxFlips: number; skippedFlips: number; constrainedPixels: Set<string> } | null = null;
+  let bestResult: { grid: QRGrid; decodedUrl: string; suffixBytes: number[]; maskPattern: number; artMatch: number; overlayFlips: number; maxFlips: number; skippedFlips: number; constrainedPixels: Set<string>; blackPixelCount: number } | null = null;
 
   for (const mask of masksToTry) {
     const result = buildArtQR(
@@ -111,18 +111,18 @@ export function generateQRWithArt(options: ReverseOptions): {
     // Score: prefer fewest total black pixels (better art contrast),
     // then fewer non-ASCII suffix bytes, then fewer overlay flips
     const blackPixels = result.grid.modules.reduce(
-      (sum, row) => sum + row.reduce((s, m) => s + m, 0), 0
+      (sum: number, row) => sum + row.reduce((s: number, m) => s + (m as number), 0), 0
     );
     const nonAsciiCount = result.suffixBytes.filter(b => b > 127).length;
     const isBetter = !bestResult ||
       nonAsciiCount < bestResult.suffixBytes.filter(b => b > 127).length ||
       (nonAsciiCount === bestResult.suffixBytes.filter(b => b > 127).length && (
-        blackPixels < (bestResult.grid.modules.reduce((s, r) => s + r.reduce((a, m) => a + m, 0), 0)) ||
-        (blackPixels === (bestResult.grid.modules.reduce((s, r) => s + r.reduce((a, m) => a + m, 0), 0)) &&
+        blackPixels < (bestResult.grid.modules.reduce((s: number, r) => s + r.reduce((a: number, m) => a + (m as number), 0), 0)) ||
+        (blackPixels === (bestResult.grid.modules.reduce((s: number, r) => s + r.reduce((a: number, m) => a + (m as number), 0), 0)) &&
           result.overlayFlips < bestResult.overlayFlips)
       ));
     if (isBetter) {
-      bestResult = { ...result, maskPattern: mask };
+      bestResult = { ...result, maskPattern: mask, blackPixelCount: blackPixels };
     }
   }
 
@@ -219,12 +219,6 @@ export function findOptimalPosition(
   return bestPos;
 }
 
-// URL-safe characters for path segments: A-Z, a-z, 0-9, -, _, ., ~
-const URL_SAFE_CHARS: number[] = [];
-for (let c = 0x41; c <= 0x5A; c++) URL_SAFE_CHARS.push(c); // A-Z
-for (let c = 0x61; c <= 0x7A; c++) URL_SAFE_CHARS.push(c); // a-z
-for (let c = 0x30; c <= 0x39; c++) URL_SAFE_CHARS.push(c); // 0-9
-URL_SAFE_CHARS.push(0x2D, 0x5F, 0x2E, 0x7E); // - _ . ~
 
 /**
  * Find a byte value that satisfies art bit constraints and minimizes black pixels.
@@ -255,26 +249,6 @@ function findWhitenedChar(
   }
 
   return result;
-}
-
-/**
- * Find a URL-safe byte value that satisfies art bit constraints.
- * Used as fallback when URL-safety matters more than whitening.
- */
-function findUrlSafeChar(constrainedMask: number, constrainedValue: number): number {
-  // Try URL-safe characters first
-  for (const ch of URL_SAFE_CHARS) {
-    if ((ch & constrainedMask) === constrainedValue) return ch;
-  }
-  // Fallback: try all printable ASCII
-  for (let ch = 0x21; ch <= 0x7E; ch++) {
-    if ((ch & constrainedMask) === constrainedValue) return ch;
-  }
-  // Last resort: any non-null byte
-  for (let ch = 1; ch <= 255; ch++) {
-    if ((ch & constrainedMask) === constrainedValue) return ch;
-  }
-  return constrainedValue;
 }
 
 function buildArtQR(

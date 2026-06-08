@@ -445,9 +445,9 @@ function I(e, t, n) {
 //#endregion
 //#region src/qr/engine.ts
 function L(e) {
-	let { data: t, version: n, ecLevel: r, maskPattern: i } = e, a = l(n), o = x(t, n, r), s = a.ecCodewordsPerBlock[r], c = a.numBlocks[r], { interleavedData: u, interleavedEC: d } = ne(o, s, c), f = re([...u, ...d]), p = C(n);
+	let { data: t, version: n, ecLevel: r, maskPattern: i } = e, a = l(n), o = x(t, n, r), s = a.ecCodewordsPerBlock[r], c = a.numBlocks[r], { interleavedData: u, interleavedEC: d } = V(o, s, c), f = ne([...u, ...d]), p = C(n);
 	j(p, f);
-	let m = i ?? ie(p, r);
+	let m = i ?? re(p, r);
 	return N(p, m), I(p, r, m), p;
 }
 function R(e) {
@@ -462,10 +462,11 @@ function R(e) {
 		7
 	] : [a], f = null;
 	for (let e of d) {
-		let a = V(t, n, r, i, e, s, c, u), o = a.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0), l = a.suffixBytes.filter((e) => e > 127).length;
+		let a = B(t, n, r, i, e, s, c, u), o = a.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0), l = a.suffixBytes.filter((e) => e > 127).length;
 		(!f || l < f.suffixBytes.filter((e) => e > 127).length || l === f.suffixBytes.filter((e) => e > 127).length && (o < f.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0) || o === f.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0) && a.overlayFlips < f.overlayFlips)) && (f = {
 			...a,
-			maskPattern: e
+			maskPattern: e,
+			blackPixelCount: o
 		});
 	}
 	return f;
@@ -502,11 +503,6 @@ function z(e, t, n, r, i, a) {
 	}
 	return g;
 }
-var B = [];
-for (let e = 65; e <= 90; e++) B.push(e);
-for (let e = 97; e <= 122; e++) B.push(e);
-for (let e = 48; e <= 57; e++) B.push(e);
-B.push(45, 95, 46, 126);
 function ee(e, t, n) {
 	let r = t & e;
 	for (let t = 0; t < 8; t++) {
@@ -516,7 +512,7 @@ function ee(e, t, n) {
 	}
 	return r;
 }
-function V(e, t, n, r, i, a, o, s) {
+function B(e, t, n, r, i, a, o, s) {
 	let c = A(C(t)), u = /* @__PURE__ */ new Map();
 	c.forEach(([e, t], n) => {
 		u.set(`${e},${t}`, n);
@@ -655,7 +651,7 @@ function te(e, t, n) {
 		ecBlockMap: d
 	};
 }
-function ne(e, t, n) {
+function V(e, t, n) {
 	let r = [], i = 0, [a, o] = n.group1;
 	for (let n = 0; n < a; n++) {
 		let n = e.slice(i, i + o);
@@ -687,29 +683,29 @@ function ne(e, t, n) {
 		interleavedEC: l
 	};
 }
-function re(e) {
+function ne(e) {
 	let t = [];
 	for (let n of e) for (let e = 7; e >= 0; e--) t.push(n >> e & 1);
 	return t;
 }
-function ie(e, t) {
+function re(e, t) {
 	let n = 0, r = Infinity;
 	for (let i = 0; i < 8; i++) {
-		let a = ae(e);
+		let a = ie(e);
 		N(a, i), I(a, t, i);
-		let o = oe(a);
+		let o = ae(a);
 		o < r && (r = o, n = i);
 	}
 	return n;
 }
-function ae(e) {
+function ie(e) {
 	return {
 		size: e.size,
 		modules: e.modules.map((e) => [...e]),
 		types: e.types.map((e) => [...e])
 	};
 }
-function oe(e) {
+function ae(e) {
 	let t = 0, { size: n, modules: r } = e;
 	for (let e = 0; e < n; e++) {
 		let i = 1;
@@ -3032,7 +3028,7 @@ var U = {
 		]
 	]
 };
-function se(e) {
+function oe(e) {
 	let t = e.toUpperCase();
 	return U[t] ? U[t] : G[e] ? G[e] : null;
 }
@@ -3057,7 +3053,7 @@ function q(e) {
 	if (!e || e.length === 0) return null;
 	let t = [];
 	for (let n of e) {
-		let e = se(n);
+		let e = oe(n);
 		t.push(e ?? U[" "]);
 	}
 	return t.length === 0 ? null : K(t);
@@ -3628,7 +3624,7 @@ function Q({ grid: t, width: i, height: s, onChange: c, onResize: l, constrained
 		]
 	});
 }
-function ce(e, t) {
+function se(e, t) {
 	return Array.from({ length: t }, () => Array(e).fill(0));
 }
 function $(e, t, n) {
@@ -3642,7 +3638,7 @@ function $(e, t, n) {
 }
 //#endregion
 //#region src/components/QRArtGenerator.tsx
-function le({ defaultUrl: n = "https://alexkafer.com/labs/qr-art/", defaultVersion: s = 5, defaultEcLevel: c = "L", showModuleMap: l = !0, className: u }) {
+function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", defaultVersion: s = 5, defaultEcLevel: c = "L", showModuleMap: l = !0, className: u }) {
 	let [d, f] = r(n), [p, m] = r(s), [h, g] = r(c), [_, v] = r(void 0), [y, b] = r(!0), [x, S] = r(!0), C = J["R♥A"], [w, T] = r(C.grid.map((e) => [...e])), [E, D] = r(C.width), [O, k] = r(C.height), A = t(() => !y || E === 0 || O === 0 ? {
 		row: 0,
 		col: 0
@@ -4127,7 +4123,7 @@ function le({ defaultUrl: n = "https://alexkafer.com/labs/qr-art/", defaultVersi
 							},
 							children: "Error generating QR code"
 						}),
-						l && M && /* @__PURE__ */ a(ue, {
+						l && M && /* @__PURE__ */ a(le, {
 							grid: M.grid,
 							artPixels: j
 						})
@@ -4137,7 +4133,7 @@ function le({ defaultUrl: n = "https://alexkafer.com/labs/qr-art/", defaultVersi
 		})
 	});
 }
-function ue({ grid: e, artPixels: t }) {
+function le({ grid: e, artPixels: t }) {
 	let n = new Set(t.map((e) => `${e.row},${e.col}`)), r = Math.min(12, Math.floor(500 / e.size)), i = {
 		finder: "#e74c3c",
 		separator: "#f39c12",
@@ -4219,4 +4215,4 @@ function ue({ grid: e, artPixels: t }) {
 	});
 }
 //#endregion
-export { J as PIXEL_ARTS, Q as PixelEditor, le as QRArtGenerator, Y as artToPixels, ce as createEmptyGrid, z as findOptimalPosition, L as generateQR, R as generateQRWithArt, H as gridToSVG, $ as resizeGrid, q as textToPixelArt };
+export { J as PIXEL_ARTS, Q as PixelEditor, ce as QRArtGenerator, Y as artToPixels, se as createEmptyGrid, z as findOptimalPosition, L as generateQR, R as generateQRWithArt, H as gridToSVG, $ as resizeGrid, q as textToPixelArt };

@@ -17,7 +17,7 @@ let layerIdCounter = 1
 function makeLayerId() { return `layer-${layerIdCounter++}` }
 
 function App() {
-  const [urlPrefix, setUrlPrefix] = useState('https://alexkafer.com/labs/qr-art/')
+  const [urlPrefix, setUrlPrefix] = useState('https://alexkafer.com/labs/qr-art?code=')
   const [version, setVersion] = useState(5)
   const [ecLevel, setEcLevel] = useState<ErrorCorrectionLevel>('L')
   const [maskPattern, setMaskPattern] = useState<number | undefined>(undefined)
@@ -455,6 +455,11 @@ function App() {
                 {result.skippedFlips > 0 && <span style={{ color: '#e67e22' }}> · {result.skippedFlips} skipped</span>}
                 {result.overlayFlips <= result.maxFlips ? ' ✅' : ' ⚠️'}
               </div>
+              {'blackPixelCount' in result && (
+                <div style={{ marginBottom: 8 }}>
+                  <strong>Black pixels:</strong> {(result as any).blackPixelCount} / {result.grid.size * result.grid.size} ({Math.round((result as any).blackPixelCount / (result.grid.size * result.grid.size) * 100)}%)
+                </div>
+              )}
               <button onClick={downloadSVG} style={{ padding: '8px 16px', cursor: 'pointer' }}>
                 Download SVG
               </button>
