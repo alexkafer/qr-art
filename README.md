@@ -2,13 +2,15 @@
 
 A QR code art generator that embeds pixel art directly into scannable QR codes — not by drawing over them with error correction, but by reverse-engineering the QR encoding pipeline so your art pixels *are* the encoded data.
 
+**[Live Demo →](https://alexkafer.com/labs/qr-art)**
+
 ## How It Works
 
 Traditional "artistic QR codes" work by corrupting a valid QR code and relying on error correction to recover the original data. This approach is fragile — scanners often fail, especially in poor lighting or at angles.
 
 **This tool takes a fundamentally different approach:**
 
-1. **You provide a URL prefix** (e.g., `https://alexkafer.com/`)
+1. **You provide a URL prefix** (e.g., `https://alexkafer.com/labs/qr-art/`)
 2. **You draw pixel art** in the built-in editor (or type text to render with the pixel font)
 3. **The reverse pipeline** maps your art pixels to QR data module positions, then computes what raw byte values those pixels encode when XOR'd with the QR mask pattern
 4. **The URL suffix is derived from the art** — your pixel art literally becomes part of the URL
@@ -111,7 +113,7 @@ const svg = gridToSVG(result.grid, 10, 4)
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `defaultUrl` | `string` | `'https://alexkafer.com/'` | Initial URL prefix |
+| `defaultUrl` | `string` | `'https://alexkafer.com/labs/qr-art/'` | Initial URL prefix |
 | `defaultVersion` | `number` | `5` | QR version (2-6) |
 | `defaultEcLevel` | `ErrorCorrectionLevel` | `'L'` | Error correction level |
 | `showModuleMap` | `boolean` | `true` | Show the module type debug map |

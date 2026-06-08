@@ -3642,7 +3642,7 @@ function $(e, t, n) {
 }
 //#endregion
 //#region src/components/QRArtGenerator.tsx
-function le({ defaultUrl: n = "https://alexkafer.com/", defaultVersion: s = 5, defaultEcLevel: c = "L", showModuleMap: l = !0, className: u }) {
+function le({ defaultUrl: n = "https://alexkafer.com/labs/qr-art/", defaultVersion: s = 5, defaultEcLevel: c = "L", showModuleMap: l = !0, className: u }) {
 	let [d, f] = r(n), [p, m] = r(s), [h, g] = r(c), [_, v] = r(void 0), [y, b] = r(!0), [x, S] = r(!0), C = J["R♥A"], [w, T] = r(C.grid.map((e) => [...e])), [E, D] = r(C.width), [O, k] = r(C.height), A = t(() => !y || E === 0 || O === 0 ? {
 		row: 0,
 		col: 0
