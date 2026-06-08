@@ -15,6 +15,8 @@ export interface QRArtGeneratorProps {
   showModuleMap?: boolean
   /** Custom CSS class name for the root container */
   className?: string
+  /** Color theme: 'light', 'dark', or 'auto' (respects prefers-color-scheme) */
+  theme?: 'light' | 'dark' | 'auto'
 }
 
 export function QRArtGenerator({
@@ -23,6 +25,7 @@ export function QRArtGenerator({
   defaultEcLevel = 'L',
   showModuleMap = true,
   className,
+  theme = 'auto',
 }: QRArtGeneratorProps) {
   const [urlPrefix, setUrlPrefix] = useState(defaultUrl)
   const [version, setVersion] = useState(defaultVersion)
@@ -119,28 +122,95 @@ export function QRArtGenerator({
     URL.revokeObjectURL(url)
   }, [svg])
 
+  const themeVars = {
+    '--qr-bg': 'var(--qr-theme-bg)',
+    '--qr-fg': 'var(--qr-theme-fg)',
+    '--qr-muted': 'var(--qr-theme-muted)',
+    '--qr-border': 'var(--qr-theme-border)',
+    '--qr-input-bg': 'var(--qr-theme-input-bg)',
+    '--qr-code-bg': 'var(--qr-theme-code-bg)',
+    '--qr-preview-bg': 'var(--qr-theme-preview-bg)',
+  } as React.CSSProperties
+
+  const themeClass = theme === 'dark' ? 'qr-art-dark' : theme === 'light' ? 'qr-art-light' : 'qr-art-auto'
+
   return (
-    <div className={className} style={{ padding: 24, maxWidth: 1200, margin: '0 auto', fontFamily: 'system-ui' }}>
+    <div className={`${themeClass}${className ? ` ${className}` : ''}`} style={{ ...themeVars, padding: 24, maxWidth: 1200, margin: '0 auto', fontFamily: 'system-ui', color: 'var(--qr-fg)' }}>
+      <style>{`
+        .qr-art-light {
+          --qr-theme-bg: #ffffff;
+          --qr-theme-fg: #1a1a1a;
+          --qr-theme-muted: #666666;
+          --qr-theme-border: #dddddd;
+          --qr-theme-input-bg: #ffffff;
+          --qr-theme-code-bg: #f5f5f5;
+          --qr-theme-preview-bg: #ffffff;
+        }
+        .qr-art-dark {
+          --qr-theme-bg: transparent;
+          --qr-theme-fg: #e4e4e7;
+          --qr-theme-muted: #a1a1aa;
+          --qr-theme-border: #3f3f46;
+          --qr-theme-input-bg: #18181b;
+          --qr-theme-code-bg: #27272a;
+          --qr-theme-preview-bg: #ffffff;
+        }
+        .qr-art-auto {
+          --qr-theme-bg: #ffffff;
+          --qr-theme-fg: #1a1a1a;
+          --qr-theme-muted: #666666;
+          --qr-theme-border: #dddddd;
+          --qr-theme-input-bg: #ffffff;
+          --qr-theme-code-bg: #f5f5f5;
+          --qr-theme-preview-bg: #ffffff;
+        }
+        @media (prefers-color-scheme: dark) {
+          .qr-art-auto {
+            --qr-theme-bg: transparent;
+            --qr-theme-fg: #e4e4e7;
+            --qr-theme-muted: #a1a1aa;
+            --qr-theme-border: #3f3f46;
+            --qr-theme-input-bg: #18181b;
+            --qr-theme-code-bg: #27272a;
+            --qr-theme-preview-bg: #ffffff;
+          }
+        }
+        .${themeClass} input, .${themeClass} select, .${themeClass} button {
+          color: var(--qr-theme-fg);
+          background: var(--qr-theme-input-bg);
+          border: 1px solid var(--qr-theme-border);
+          border-radius: 4px;
+        }
+        .${themeClass} fieldset {
+          border-color: var(--qr-theme-border);
+        }
+        .${themeClass} legend {
+          color: var(--qr-theme-fg);
+        }
+        .${themeClass} label {
+          color: var(--qr-theme-fg);
+        }
+      `}</style>
       <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
         {/* Controls */}
         <div style={{ flex: '1 1 360px', minWidth: 0, maxWidth: 600 }}>
-          <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <fieldset style={{ border: '1px solid var(--qr-border)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
             <legend>URL Prefix</legend>
             <input
               type="text"
               value={urlPrefix}
               onChange={(e) => setUrlPrefix(e.target.value)}
-              style={{ width: '100%', padding: 8, fontSize: 14, boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: 8, fontSize: 14, boxSizing: 'border-box', background: 'var(--qr-input-bg)', color: 'var(--qr-fg)', border: '1px solid var(--qr-border)', borderRadius: 4 }}
             />
           </fieldset>
 
-          <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <fieldset style={{ border: '1px solid var(--qr-border)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
             <legend>QR Settings</legend>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <label>
                 Version:
                 <select value={version} onChange={(e) => setVersion(Number(e.target.value))}
-                  style={{ display: 'block', width: '100%', padding: 6, marginTop: 4 }}>
+                  style={{ display: 'block', width: '100%', padding: 6, marginTop: 4, background: 'var(--qr-input-bg)', color: 'var(--qr-fg)', border: '1px solid var(--qr-border)', borderRadius: 4 }}>
                   {[2, 3, 4, 5, 6].map((v) => (
                     <option key={v} value={v}>V{v} ({17 + v * 4}×{17 + v * 4})</option>
                   ))}
@@ -149,7 +219,7 @@ export function QRArtGenerator({
               <label>
                 EC Level:
                 <select value={ecLevel} onChange={(e) => setEcLevel(e.target.value as ErrorCorrectionLevel)}
-                  style={{ display: 'block', width: '100%', padding: 6, marginTop: 4 }}>
+                  style={{ display: 'block', width: '100%', padding: 6, marginTop: 4, background: 'var(--qr-input-bg)', color: 'var(--qr-fg)', border: '1px solid var(--qr-border)', borderRadius: 4 }}>
                   <option value="L">L (7%)</option>
                   <option value="M">M (15%)</option>
                   <option value="Q">Q (25%)</option>
@@ -161,7 +231,7 @@ export function QRArtGenerator({
                 <select
                   value={maskPattern === undefined ? 'auto' : maskPattern}
                   onChange={(e) => setMaskPattern(e.target.value === 'auto' ? undefined : Number(e.target.value))}
-                  style={{ display: 'block', width: '100%', padding: 6, marginTop: 4 }}
+                  style={{ display: 'block', width: '100%', padding: 6, marginTop: 4, background: 'var(--qr-input-bg)', color: 'var(--qr-fg)', border: '1px solid var(--qr-border)', borderRadius: 4 }}
                 >
                   <option value="auto">Auto</option>
                   {[0, 1, 2, 3, 4, 5, 6, 7].map((m) => (
@@ -172,7 +242,7 @@ export function QRArtGenerator({
             </div>
           </fieldset>
 
-          <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16, marginBottom: 16, minWidth: 0 }}>
+          <fieldset style={{ border: '1px solid var(--qr-border)', borderRadius: 8, padding: 16, marginBottom: 16, minWidth: 0 }}>
             <legend>Pixel Art</legend>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <input type="checkbox" checked={useArt} onChange={(e) => setUseArt(e.target.checked)} />
@@ -194,7 +264,7 @@ export function QRArtGenerator({
                     <input
                       type="text"
                       placeholder="e.g. R♥A, LOVE, HI!"
-                      style={{ flex: 1, padding: 6, fontSize: 14, boxSizing: 'border-box' }}
+                      style={{ flex: 1, padding: 6, fontSize: 14, boxSizing: 'border-box', background: 'var(--qr-input-bg)', color: 'var(--qr-fg)', border: '1px solid var(--qr-border)', borderRadius: 4 }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           const art = textToPixelArt((e.target as HTMLInputElement).value)
@@ -218,7 +288,7 @@ export function QRArtGenerator({
                           setEditorHeight(art.height)
                         }
                       }}
-                      style={{ padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}
+                      style={{ padding: '6px 12px', cursor: 'pointer', fontSize: 13, background: 'var(--qr-input-bg)', color: 'var(--qr-fg)', border: '1px solid var(--qr-border)', borderRadius: 4 }}
                     >
                       Render
                     </button>
@@ -236,7 +306,7 @@ export function QRArtGenerator({
                         setEditorWidth(art.width)
                         setEditorHeight(art.height)
                       }}
-                      style={{ padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}
+                      style={{ padding: '3px 8px', fontSize: 11, cursor: 'pointer', background: 'var(--qr-input-bg)', color: 'var(--qr-fg)', border: '1px solid var(--qr-border)', borderRadius: 4 }}
                     >
                       {name}
                     </button>
@@ -258,7 +328,7 @@ export function QRArtGenerator({
                 />
 
                 {/* Auto-placed position info */}
-                <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
+                <div style={{ fontSize: 12, color: 'var(--qr-muted)', marginTop: 8 }}>
                   Auto-placed at row {optimalPos.row}, col {optimalPos.col}
                   {constrainedEditorCells.size > 0 && (
                     <span style={{ color: '#e74c3c' }}>
@@ -271,11 +341,11 @@ export function QRArtGenerator({
           </fieldset>
 
           {result && (
-            <fieldset style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+            <fieldset style={{ border: '1px solid var(--qr-border)', borderRadius: 8, padding: 16, marginBottom: 16 }}>
               <legend>Output</legend>
               <div style={{ marginBottom: 8 }}>
                 <strong>Decoded URL:</strong>
-                <code style={{ display: 'block', padding: 8, background: '#f5f5f5', borderRadius: 4, marginTop: 4, wordBreak: 'break-all', fontSize: 12 }}>
+                <code style={{ display: 'block', padding: 8, background: 'var(--qr-code-bg)', borderRadius: 4, marginTop: 4, wordBreak: 'break-all', fontSize: 12, color: 'var(--qr-fg)' }}>
                   {urlPrefix + ('suffixBytes' in result
                     ? result.suffixBytes.map((b: number) => {
                         if (b >= 0x30 && b <= 0x39 || b >= 0x41 && b <= 0x5A || b >= 0x61 && b <= 0x7A || [0x2D, 0x5F, 0x2E, 0x7E].includes(b)) return String.fromCharCode(b);
@@ -298,7 +368,7 @@ export function QRArtGenerator({
                 {result.skippedFlips > 0 && <span style={{ color: '#e67e22' }}> · {result.skippedFlips} skipped</span>}
                 {result.overlayFlips <= result.maxFlips ? ' ✅' : ' ⚠️'}
               </div>
-              <button onClick={downloadSVG} style={{ padding: '8px 16px', cursor: 'pointer' }}>
+              <button onClick={downloadSVG} style={{ padding: '8px 16px', cursor: 'pointer', background: 'var(--qr-input-bg)', color: 'var(--qr-fg)', border: '1px solid var(--qr-border)', borderRadius: 4 }}>
                 Download SVG
               </button>
             </fieldset>
@@ -308,14 +378,14 @@ export function QRArtGenerator({
         {/* QR Preview */}
         <div style={{ flex: '1 1 350px', minWidth: 300 }}>
           <div style={{ position: 'sticky', top: 24 }}>
-            <h3 style={{ marginTop: 0 }}>Preview</h3>
+            <h3 style={{ marginTop: 0, color: 'var(--qr-fg)' }}>Preview</h3>
             {svg ? (
               <div
                 dangerouslySetInnerHTML={{ __html: svg }}
-                style={{ background: 'white', padding: 16, borderRadius: 8, border: '1px solid #ddd' }}
+                style={{ background: 'var(--qr-preview-bg)', padding: 16, borderRadius: 8, border: '1px solid var(--qr-border)' }}
               />
             ) : (
-              <div style={{ padding: 40, textAlign: 'center', color: '#999', border: '1px solid #ddd', borderRadius: 8 }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--qr-muted)', border: '1px solid var(--qr-border)', borderRadius: 8 }}>
                 Error generating QR code
               </div>
             )}
@@ -351,7 +421,7 @@ function QRGridDebug({ grid, artPixels }: { grid: QRGrid; artPixels: ArtPixel[] 
         display: 'inline-grid',
         gridTemplateColumns: `repeat(${grid.size}, ${moduleSize}px)`,
         gap: 1,
-        background: '#ccc',
+        background: 'var(--qr-border, #ccc)',
         padding: 1,
         borderRadius: 4,
       }}>

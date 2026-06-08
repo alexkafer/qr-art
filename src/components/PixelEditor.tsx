@@ -108,7 +108,7 @@ export function PixelEditor({ grid, width, height, onChange, onResize, constrain
               const v = Number(e.target.value)
               if (v >= 1 && v <= 40) onResize(v, height)
             }}
-            style={{ width: 48, padding: 4, boxSizing: 'border-box' }}
+            style={{ width: 48, padding: 4, boxSizing: 'border-box', background: 'var(--qr-input-bg, #fff)', color: 'var(--qr-fg, #1a1a1a)', border: '1px solid var(--qr-border, #ddd)', borderRadius: 4 }}
             min={1} max={40}
           />
         </label>
@@ -121,14 +121,14 @@ export function PixelEditor({ grid, width, height, onChange, onResize, constrain
               const v = Number(e.target.value)
               if (v >= 1 && v <= 40) onResize(width, v)
             }}
-            style={{ width: 48, padding: 4, boxSizing: 'border-box' }}
+            style={{ width: 48, padding: 4, boxSizing: 'border-box', background: 'var(--qr-input-bg, #fff)', color: 'var(--qr-fg, #1a1a1a)', border: '1px solid var(--qr-border, #ddd)', borderRadius: 4 }}
             min={1} max={40}
           />
         </label>
-        <button onClick={handleClear} style={{ padding: '4px 8px', fontSize: 12, cursor: 'pointer' }}>
+        <button onClick={handleClear} style={{ padding: '4px 8px', fontSize: 12, cursor: 'pointer', background: 'var(--qr-input-bg, #fff)', color: 'var(--qr-fg, #1a1a1a)', border: '1px solid var(--qr-border, #ddd)', borderRadius: 4 }}>
           Clear
         </button>
-        <button onClick={handleFill} style={{ padding: '4px 8px', fontSize: 12, cursor: 'pointer' }}>
+        <button onClick={handleFill} style={{ padding: '4px 8px', fontSize: 12, cursor: 'pointer', background: 'var(--qr-input-bg, #fff)', color: 'var(--qr-fg, #1a1a1a)', border: '1px solid var(--qr-border, #ddd)', borderRadius: 4 }}>
           Fill
         </button>
       </div>
@@ -144,7 +144,7 @@ export function PixelEditor({ grid, width, height, onChange, onResize, constrain
             display: 'inline-grid',
             gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
             gap: GRID_GAP,
-            background: '#ccc',
+            background: 'var(--qr-border, #ccc)',
             padding: GRID_GAP,
             borderRadius: 4,
             cursor: 'crosshair',
@@ -179,7 +179,7 @@ export function PixelEditor({ grid, width, height, onChange, onResize, constrain
       </div>
       </div>
 
-      <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+      <div style={{ fontSize: 11, color: 'var(--qr-muted, #999)', marginTop: 4 }}>
         Click/tap to toggle · drag to paint · {width}×{height} = {width * height} modules
       </div>
     </div>

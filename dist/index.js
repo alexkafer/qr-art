@@ -443,294 +443,8 @@ function I(e, t, n) {
 	}
 }
 //#endregion
-//#region src/qr/engine.ts
-function L(e) {
-	let { data: t, version: n, ecLevel: r, maskPattern: i } = e, a = l(n), o = x(t, n, r), s = a.ecCodewordsPerBlock[r], c = a.numBlocks[r], { interleavedData: u, interleavedEC: d } = V(o, s, c), f = ne([...u, ...d]), p = C(n);
-	j(p, f);
-	let m = i ?? re(p, r);
-	return N(p, m), I(p, r, m), p;
-}
-function R(e) {
-	let { urlPrefix: t, version: n, ecLevel: r, artPixels: i, maskPattern: a } = e, o = l(n), s = o.totalDataCodewords[r], c = o.ecCodewordsPerBlock[r], u = o.numBlocks[r], d = a === void 0 ? [
-		0,
-		1,
-		2,
-		3,
-		4,
-		5,
-		6,
-		7
-	] : [a], f = null;
-	for (let e of d) {
-		let a = B(t, n, r, i, e, s, c, u), o = a.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0), l = a.suffixBytes.filter((e) => e > 127).length;
-		(!f || l < f.suffixBytes.filter((e) => e > 127).length || l === f.suffixBytes.filter((e) => e > 127).length && (o < f.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0) || o === f.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0) && a.overlayFlips < f.overlayFlips)) && (f = {
-			...a,
-			maskPattern: e,
-			blackPixelCount: o
-		});
-	}
-	return f;
-}
-function z(e, t, n, r, i, a) {
-	let o = l(t), s = o.size, c = o.totalDataCodewords[n], u = C(t), d = A(u), f = c * 8, p = 12 + e.length * 8, m = /* @__PURE__ */ new Map();
-	d.forEach(([e, t], n) => {
-		m.set(`${e},${t}`, n);
-	});
-	let h = /* @__PURE__ */ new Set();
-	for (let e = 0; e < s; e++) for (let t = 0; t < s; t++) u.types[e][t] !== "data" && h.add(`${e},${t}`);
-	let g = null, _ = -Infinity;
-	for (let e = 0; e <= s - i; e++) for (let t = 0; t <= s - r; t++) {
-		let n = 0, o = 0, c = 0;
-		for (let s = 0; s < i; s++) for (let i = 0; i < r; i++) {
-			let r = `${e + s},${t + i}`;
-			if (h.has(r)) {
-				o++;
-				continue;
-			}
-			if (a?.has(r)) {
-				c++;
-				continue;
-			}
-			let l = m.get(r);
-			l !== void 0 && l >= p && l < f && n++;
-		}
-		if (o > 0 || c > 0) continue;
-		let l = Math.abs(e + i / 2 - s / 2) + Math.abs(t + r / 2 - s / 2), u = n * 1e3 - l;
-		u > _ && (_ = u, g = {
-			row: e,
-			col: t
-		});
-	}
-	return g;
-}
-function ee(e, t, n) {
-	let r = t & e;
-	for (let t = 0; t < 8; t++) {
-		if (e & 1 << t) continue;
-		let i = n.get(t);
-		i !== void 0 && i === 1 && (r |= 1 << t);
-	}
-	return r;
-}
-function B(e, t, n, r, i, a, o, s) {
-	let c = A(C(t)), u = /* @__PURE__ */ new Map();
-	c.forEach(([e, t], n) => {
-		u.set(`${e},${t}`, n);
-	});
-	let { dataBlockMap: d } = te(Array(a).fill(0), o, s), f = a * 8, p = Math.floor((f - 12) / 8), m = 12 + e.length * 8, h = [];
-	for (let e of r) {
-		let t = `${e.row},${e.col}`, n = u.get(t);
-		if (n === void 0 || n >= f) continue;
-		let r = P(i, e.row, e.col), a = e.value ^ r, o = Math.floor(n / 8), c = 7 - n % 8;
-		if (o >= d.length) continue;
-		let { blockIndex: l, posInBlock: p } = d[o], m = s.group1[0], g = s.group1[1], _;
-		_ = l < m ? l * g + p : m * g + (l - m) * (s.group2?.[1] ?? 0) + p;
-		let v = _ * 8 + (7 - c);
-		h.push({
-			seqBitIndex: v,
-			rawValue: a
-		});
-	}
-	let g = m - 1;
-	for (let { seqBitIndex: e } of h) e >= m && e > g && (g = e);
-	let _ = Math.floor((g - 12) / 8), v = Math.min(_ + 1, p), y = Math.max(0, v - e.length), b = /* @__PURE__ */ new Map();
-	for (let [e, t] of u) {
-		if (t >= f) continue;
-		let n = Math.floor(t / 8), r = 7 - t % 8;
-		if (n >= d.length) continue;
-		let { blockIndex: i, posInBlock: a } = d[n], o = s.group1[0], c = s.group1[1], l;
-		l = i < o ? i * c + a : o * c + (i - o) * (s.group2?.[1] ?? 0) + a;
-		let u = l * 8 + (7 - r), [p, m] = e.split(",").map(Number);
-		b.set(u, [p, m]);
-	}
-	let x = Array.from({ length: y }, () => ({
-		mask: 0,
-		value: 0
-	}));
-	for (let { seqBitIndex: t, rawValue: n } of h) {
-		let r = Math.floor((t - 12) / 8), i = 7 - (t - 12) % 8;
-		if (r < e.length || r >= v) continue;
-		let a = r - e.length;
-		a >= 0 && a < y && (x[a].mask |= 1 << i, n && (x[a].value |= 1 << i));
-	}
-	let S = new Uint8Array(y);
-	for (let t = 0; t < y; t++) {
-		let { mask: n, value: r } = x[t], a = /* @__PURE__ */ new Map(), o = e.length + t;
-		for (let e = 0; e < 8; e++) {
-			if (n & 1 << e) continue;
-			let t = 12 + o * 8 + (7 - e), r = b.get(t);
-			r && a.set(e, P(i, r[0], r[1]));
-		}
-		S[t] = ee(n, r, a);
-	}
-	let w = e + Array.from(S).map((e) => String.fromCharCode(e)).join(""), T = L({
-		data: w,
-		version: t,
-		ecLevel: n,
-		maskPattern: i
-	}), E = 0;
-	for (let e of r) e.row < T.size && e.col < T.size && T.modules[e.row][e.col] === e.value && E++;
-	let D = l(t).ecCodewordsPerBlock[n], O = s.group1[0] + (s.group2?.[0] ?? 0), k = Math.floor(D / 2), j = /* @__PURE__ */ new Map();
-	c.forEach(([e, t], n) => {
-		j.set(`${e},${t}`, Math.floor(n / 8));
-	});
-	let M = {
-		size: T.size,
-		modules: T.modules.map((e) => [...e]),
-		types: T.types.map((e) => [...e])
-	}, N = /* @__PURE__ */ new Map();
-	for (let e = 0; e < O; e++) N.set(e, /* @__PURE__ */ new Set());
-	let F = 0, I = 0, R = /* @__PURE__ */ new Set();
-	for (let e of r) {
-		if (e.row >= T.size || e.col >= T.size || M.modules[e.row][e.col] === e.value) continue;
-		let t = `${e.row},${e.col}`, n = j.get(t);
-		if (n === void 0) continue;
-		let r;
-		if (n < d.length) r = d[n].blockIndex;
-		else {
-			let e = n - d.length;
-			r = e < O * D ? e % O : 0;
-		}
-		let i = N.get(r);
-		if (!i.has(n) && i.size >= k) {
-			I++, R.add(t);
-			continue;
-		}
-		M.modules[e.row][e.col] = e.value, i.add(n), F++;
-	}
-	let z = k * O, B = F > 0 ? M : T, V = 0;
-	for (let e of r) e.row < B.size && e.col < B.size && B.modules[e.row][e.col] === e.value && V++;
-	return {
-		grid: B,
-		decodedUrl: w,
-		suffixBytes: Array.from(S),
-		artMatch: V,
-		overlayFlips: F,
-		maxFlips: z,
-		skippedFlips: I,
-		constrainedPixels: R
-	};
-}
-function te(e, t, n) {
-	let r = [], i = 0, [a, o] = n.group1;
-	for (let n = 0; n < a; n++) {
-		let n = e.slice(i, i + o);
-		i += o;
-		let a = b(n, t);
-		r.push({
-			data: n,
-			ec: a
-		});
-	}
-	if (n.group2) {
-		let [a, o] = n.group2;
-		for (let n = 0; n < a; n++) {
-			let n = e.slice(i, i + o);
-			i += o;
-			let a = b(n, t);
-			r.push({
-				data: n,
-				ec: a
-			});
-		}
-	}
-	let s = Math.max(...r.map((e) => e.data.length)), c = [], l = [];
-	for (let e = 0; e < s; e++) for (let t = 0; t < r.length; t++) e < r[t].data.length && (c.push(r[t].data[e]), l.push({
-		blockIndex: t,
-		posInBlock: e
-	}));
-	let u = [], d = [];
-	for (let e = 0; e < t; e++) for (let t = 0; t < r.length; t++) e < r[t].ec.length && (u.push(r[t].ec[e]), d.push({
-		blockIndex: t,
-		posInBlock: e
-	}));
-	return {
-		interleavedData: c,
-		interleavedEC: u,
-		dataBlockMap: l,
-		ecBlockMap: d
-	};
-}
-function V(e, t, n) {
-	let r = [], i = 0, [a, o] = n.group1;
-	for (let n = 0; n < a; n++) {
-		let n = e.slice(i, i + o);
-		i += o;
-		let a = b(n, t);
-		r.push({
-			data: n,
-			ec: a
-		});
-	}
-	if (n.group2) {
-		let [a, o] = n.group2;
-		for (let n = 0; n < a; n++) {
-			let n = e.slice(i, i + o);
-			i += o;
-			let a = b(n, t);
-			r.push({
-				data: n,
-				ec: a
-			});
-		}
-	}
-	let s = Math.max(...r.map((e) => e.data.length)), c = [];
-	for (let e = 0; e < s; e++) for (let t of r) e < t.data.length && c.push(t.data[e]);
-	let l = [];
-	for (let e = 0; e < t; e++) for (let t of r) e < t.ec.length && l.push(t.ec[e]);
-	return {
-		interleavedData: c,
-		interleavedEC: l
-	};
-}
-function ne(e) {
-	let t = [];
-	for (let n of e) for (let e = 7; e >= 0; e--) t.push(n >> e & 1);
-	return t;
-}
-function re(e, t) {
-	let n = 0, r = Infinity;
-	for (let i = 0; i < 8; i++) {
-		let a = ie(e);
-		N(a, i), I(a, t, i);
-		let o = ae(a);
-		o < r && (r = o, n = i);
-	}
-	return n;
-}
-function ie(e) {
-	return {
-		size: e.size,
-		modules: e.modules.map((e) => [...e]),
-		types: e.types.map((e) => [...e])
-	};
-}
-function ae(e) {
-	let t = 0, { size: n, modules: r } = e;
-	for (let e = 0; e < n; e++) {
-		let i = 1;
-		for (let a = 1; a < n; a++) r[e][a] === r[e][a - 1] ? i++ : (i >= 5 && (t += i - 2), i = 1);
-		i >= 5 && (t += i - 2);
-	}
-	for (let e = 0; e < n; e++) {
-		let i = 1;
-		for (let a = 1; a < n; a++) r[a][e] === r[a - 1][e] ? i++ : (i >= 5 && (t += i - 2), i = 1);
-		i >= 5 && (t += i - 2);
-	}
-	return t;
-}
-function H(e, t = 10, n = 4) {
-	let r = (e.size + n * 2) * t, i = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r} ${r}" width="${r}" height="${r}">`;
-	i += `<rect width="${r}" height="${r}" fill="white"/>`;
-	for (let r = 0; r < e.size; r++) for (let a = 0; a < e.size; a++) if (e.modules[r][a] === 1) {
-		let e = (a + n) * t, o = (r + n) * t;
-		i += `<rect x="${e}" y="${o}" width="${t}" height="${t}" fill="black"/>`;
-	}
-	return i += "</svg>", i;
-}
-//#endregion
 //#region src/qr/pixelArt.ts
-var U = {
+var L = {
 	A: [
 		[
 			0,
@@ -2822,7 +2536,7 @@ var U = {
 			0
 		]
 	]
-}, W = [
+}, R = [
 	[
 		0,
 		1,
@@ -2872,8 +2586,8 @@ var U = {
 		0,
 		0
 	]
-], G = {
-	"♥": W,
+], z = {
+	"♥": R,
 	"♡": [
 		[
 			0,
@@ -3028,11 +2742,11 @@ var U = {
 		]
 	]
 };
-function oe(e) {
+function B(e) {
 	let t = e.toUpperCase();
-	return U[t] ? U[t] : G[e] ? G[e] : null;
+	return L[t] ? L[t] : z[e] ? z[e] : null;
 }
-function K(e) {
+function V(e) {
 	let t = e.length * 5 + (e.length - 1) * 1, n = [];
 	for (let t = 0; t < 7; t++) {
 		let r = [];
@@ -3049,38 +2763,38 @@ function K(e) {
 		grid: n
 	};
 }
-function q(e) {
+function H(e) {
 	if (!e || e.length === 0) return null;
 	let t = [];
 	for (let n of e) {
-		let e = oe(n);
-		t.push(e ?? U[" "]);
+		let e = B(n);
+		t.push(e ?? L[" "]);
 	}
-	return t.length === 0 ? null : K(t);
+	return t.length === 0 ? null : V(t);
 }
-var J = {
-	"R♥A": K([
-		U.R,
-		W,
-		U.A
+var U = {
+	"R♥A": V([
+		L.R,
+		R,
+		L.A
 	]),
-	LOVE: K([
-		U.L,
-		U.O,
-		U.V,
-		U.E
+	LOVE: V([
+		L.L,
+		L.O,
+		L.V,
+		L.E
 	]),
-	"I DO": K([
-		U.I,
-		U[" "],
-		U.D,
-		U.O
+	"I DO": V([
+		L.I,
+		L[" "],
+		L.D,
+		L.O
 	]),
-	"YES!": K([
-		U.Y,
-		U.E,
-		U.S,
-		U["!"]
+	"YES!": V([
+		L.Y,
+		L.E,
+		L.S,
+		L["!"]
 	]),
 	Rings: {
 		name: "Rings",
@@ -3433,7 +3147,7 @@ var J = {
 		]
 	}
 };
-function Y(e, t, n) {
+function W(e, t, n) {
 	let r = [];
 	for (let i = 0; i < e.height; i++) for (let a = 0; a < e.width; a++) r.push({
 		row: t + i,
@@ -3441,6 +3155,292 @@ function Y(e, t, n) {
 		value: e.grid[i][a]
 	});
 	return r;
+}
+//#endregion
+//#region src/qr/engine.ts
+function G(e) {
+	let { data: t, version: n, ecLevel: r, maskPattern: i } = e, a = l(n), o = x(t, n, r), s = a.ecCodewordsPerBlock[r], c = a.numBlocks[r], { interleavedData: u, interleavedEC: d } = ne(o, s, c), f = re([...u, ...d]), p = C(n);
+	j(p, f);
+	let m = i ?? ie(p, r);
+	return N(p, m), I(p, r, m), p;
+}
+function K(e) {
+	let { urlPrefix: t, version: n, ecLevel: r, artPixels: i, maskPattern: a } = e, o = l(n), s = o.totalDataCodewords[r], c = o.ecCodewordsPerBlock[r], u = o.numBlocks[r], d = a === void 0 ? [
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7
+	] : [a], f = null;
+	for (let e of d) {
+		let a = ee(t, n, r, i, e, s, c, u), o = a.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0), l = a.suffixBytes.filter((e) => e > 127).length;
+		(!f || l < f.suffixBytes.filter((e) => e > 127).length || l === f.suffixBytes.filter((e) => e > 127).length && (o < f.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0) || o === f.grid.modules.reduce((e, t) => e + t.reduce((e, t) => e + t, 0), 0) && a.overlayFlips < f.overlayFlips)) && (f = {
+			...a,
+			maskPattern: e,
+			blackPixelCount: o
+		});
+	}
+	return f;
+}
+function q(e, t, n, r, i, a) {
+	let o = l(t), s = o.size, c = o.totalDataCodewords[n], u = C(t), d = A(u), f = c * 8, p = 12 + e.length * 8, m = /* @__PURE__ */ new Map();
+	d.forEach(([e, t], n) => {
+		m.set(`${e},${t}`, n);
+	});
+	let h = /* @__PURE__ */ new Set();
+	for (let e = 0; e < s; e++) for (let t = 0; t < s; t++) u.types[e][t] !== "data" && h.add(`${e},${t}`);
+	let g = null, _ = -Infinity;
+	for (let e = 0; e <= s - i; e++) for (let t = 0; t <= s - r; t++) {
+		let n = 0, o = 0, c = 0;
+		for (let s = 0; s < i; s++) for (let i = 0; i < r; i++) {
+			let r = `${e + s},${t + i}`;
+			if (h.has(r)) {
+				o++;
+				continue;
+			}
+			if (a?.has(r)) {
+				c++;
+				continue;
+			}
+			let l = m.get(r);
+			l !== void 0 && l >= p && l < f && n++;
+		}
+		if (o > 0 || c > 0) continue;
+		let l = Math.abs(e + i / 2 - s / 2) + Math.abs(t + r / 2 - s / 2), u = n * 1e3 - l;
+		u > _ && (_ = u, g = {
+			row: e,
+			col: t
+		});
+	}
+	return g;
+}
+function J(e, t, n) {
+	let r = t & e;
+	for (let t = 0; t < 8; t++) {
+		if (e & 1 << t) continue;
+		let i = n.get(t);
+		i !== void 0 && i === 1 && (r |= 1 << t);
+	}
+	return r;
+}
+function ee(e, t, n, r, i, a, o, s) {
+	let c = A(C(t)), u = /* @__PURE__ */ new Map();
+	c.forEach(([e, t], n) => {
+		u.set(`${e},${t}`, n);
+	});
+	let { dataBlockMap: d } = te(Array(a).fill(0), o, s), f = a * 8, p = Math.floor((f - 12) / 8), m = 12 + e.length * 8, h = [];
+	for (let e of r) {
+		let t = `${e.row},${e.col}`, n = u.get(t);
+		if (n === void 0 || n >= f) continue;
+		let r = P(i, e.row, e.col), a = e.value ^ r, o = Math.floor(n / 8), c = 7 - n % 8;
+		if (o >= d.length) continue;
+		let { blockIndex: l, posInBlock: p } = d[o], m = s.group1[0], g = s.group1[1], _;
+		_ = l < m ? l * g + p : m * g + (l - m) * (s.group2?.[1] ?? 0) + p;
+		let v = _ * 8 + (7 - c);
+		h.push({
+			seqBitIndex: v,
+			rawValue: a
+		});
+	}
+	let g = m - 1;
+	for (let { seqBitIndex: e } of h) e >= m && e > g && (g = e);
+	let _ = Math.floor((g - 12) / 8), v = Math.min(_ + 1, p), y = Math.max(0, v - e.length), b = /* @__PURE__ */ new Map();
+	for (let [e, t] of u) {
+		if (t >= f) continue;
+		let n = Math.floor(t / 8), r = 7 - t % 8;
+		if (n >= d.length) continue;
+		let { blockIndex: i, posInBlock: a } = d[n], o = s.group1[0], c = s.group1[1], l;
+		l = i < o ? i * c + a : o * c + (i - o) * (s.group2?.[1] ?? 0) + a;
+		let u = l * 8 + (7 - r), [p, m] = e.split(",").map(Number);
+		b.set(u, [p, m]);
+	}
+	let x = Array.from({ length: y }, () => ({
+		mask: 0,
+		value: 0
+	}));
+	for (let { seqBitIndex: t, rawValue: n } of h) {
+		let r = Math.floor((t - 12) / 8), i = 7 - (t - 12) % 8;
+		if (r < e.length || r >= v) continue;
+		let a = r - e.length;
+		a >= 0 && a < y && (x[a].mask |= 1 << i, n && (x[a].value |= 1 << i));
+	}
+	let S = new Uint8Array(y);
+	for (let t = 0; t < y; t++) {
+		let { mask: n, value: r } = x[t], a = /* @__PURE__ */ new Map(), o = e.length + t;
+		for (let e = 0; e < 8; e++) {
+			if (n & 1 << e) continue;
+			let t = 12 + o * 8 + (7 - e), r = b.get(t);
+			r && a.set(e, P(i, r[0], r[1]));
+		}
+		S[t] = J(n, r, a);
+	}
+	let w = e + Array.from(S).map((e) => String.fromCharCode(e)).join(""), T = G({
+		data: w,
+		version: t,
+		ecLevel: n,
+		maskPattern: i
+	}), E = 0;
+	for (let e of r) e.row < T.size && e.col < T.size && T.modules[e.row][e.col] === e.value && E++;
+	let D = l(t).ecCodewordsPerBlock[n], O = s.group1[0] + (s.group2?.[0] ?? 0), k = Math.floor(D / 2), j = /* @__PURE__ */ new Map();
+	c.forEach(([e, t], n) => {
+		j.set(`${e},${t}`, Math.floor(n / 8));
+	});
+	let M = {
+		size: T.size,
+		modules: T.modules.map((e) => [...e]),
+		types: T.types.map((e) => [...e])
+	}, N = /* @__PURE__ */ new Map();
+	for (let e = 0; e < O; e++) N.set(e, /* @__PURE__ */ new Set());
+	let F = 0, I = 0, L = /* @__PURE__ */ new Set();
+	for (let e of r) {
+		if (e.row >= T.size || e.col >= T.size || M.modules[e.row][e.col] === e.value) continue;
+		let t = `${e.row},${e.col}`, n = j.get(t);
+		if (n === void 0) continue;
+		let r;
+		if (n < d.length) r = d[n].blockIndex;
+		else {
+			let e = n - d.length;
+			r = e < O * D ? e % O : 0;
+		}
+		let i = N.get(r);
+		if (!i.has(n) && i.size >= k) {
+			I++, L.add(t);
+			continue;
+		}
+		M.modules[e.row][e.col] = e.value, i.add(n), F++;
+	}
+	let R = k * O, z = F > 0 ? M : T, B = 0;
+	for (let e of r) e.row < z.size && e.col < z.size && z.modules[e.row][e.col] === e.value && B++;
+	return {
+		grid: z,
+		decodedUrl: w,
+		suffixBytes: Array.from(S),
+		artMatch: B,
+		overlayFlips: F,
+		maxFlips: R,
+		skippedFlips: I,
+		constrainedPixels: L
+	};
+}
+function te(e, t, n) {
+	let r = [], i = 0, [a, o] = n.group1;
+	for (let n = 0; n < a; n++) {
+		let n = e.slice(i, i + o);
+		i += o;
+		let a = b(n, t);
+		r.push({
+			data: n,
+			ec: a
+		});
+	}
+	if (n.group2) {
+		let [a, o] = n.group2;
+		for (let n = 0; n < a; n++) {
+			let n = e.slice(i, i + o);
+			i += o;
+			let a = b(n, t);
+			r.push({
+				data: n,
+				ec: a
+			});
+		}
+	}
+	let s = Math.max(...r.map((e) => e.data.length)), c = [], l = [];
+	for (let e = 0; e < s; e++) for (let t = 0; t < r.length; t++) e < r[t].data.length && (c.push(r[t].data[e]), l.push({
+		blockIndex: t,
+		posInBlock: e
+	}));
+	let u = [], d = [];
+	for (let e = 0; e < t; e++) for (let t = 0; t < r.length; t++) e < r[t].ec.length && (u.push(r[t].ec[e]), d.push({
+		blockIndex: t,
+		posInBlock: e
+	}));
+	return {
+		interleavedData: c,
+		interleavedEC: u,
+		dataBlockMap: l,
+		ecBlockMap: d
+	};
+}
+function ne(e, t, n) {
+	let r = [], i = 0, [a, o] = n.group1;
+	for (let n = 0; n < a; n++) {
+		let n = e.slice(i, i + o);
+		i += o;
+		let a = b(n, t);
+		r.push({
+			data: n,
+			ec: a
+		});
+	}
+	if (n.group2) {
+		let [a, o] = n.group2;
+		for (let n = 0; n < a; n++) {
+			let n = e.slice(i, i + o);
+			i += o;
+			let a = b(n, t);
+			r.push({
+				data: n,
+				ec: a
+			});
+		}
+	}
+	let s = Math.max(...r.map((e) => e.data.length)), c = [];
+	for (let e = 0; e < s; e++) for (let t of r) e < t.data.length && c.push(t.data[e]);
+	let l = [];
+	for (let e = 0; e < t; e++) for (let t of r) e < t.ec.length && l.push(t.ec[e]);
+	return {
+		interleavedData: c,
+		interleavedEC: l
+	};
+}
+function re(e) {
+	let t = [];
+	for (let n of e) for (let e = 7; e >= 0; e--) t.push(n >> e & 1);
+	return t;
+}
+function ie(e, t) {
+	let n = 0, r = Infinity;
+	for (let i = 0; i < 8; i++) {
+		let a = ae(e);
+		N(a, i), I(a, t, i);
+		let o = oe(a);
+		o < r && (r = o, n = i);
+	}
+	return n;
+}
+function ae(e) {
+	return {
+		size: e.size,
+		modules: e.modules.map((e) => [...e]),
+		types: e.types.map((e) => [...e])
+	};
+}
+function oe(e) {
+	let t = 0, { size: n, modules: r } = e;
+	for (let e = 0; e < n; e++) {
+		let i = 1;
+		for (let a = 1; a < n; a++) r[e][a] === r[e][a - 1] ? i++ : (i >= 5 && (t += i - 2), i = 1);
+		i >= 5 && (t += i - 2);
+	}
+	for (let e = 0; e < n; e++) {
+		let i = 1;
+		for (let a = 1; a < n; a++) r[a][e] === r[a - 1][e] ? i++ : (i >= 5 && (t += i - 2), i = 1);
+		i >= 5 && (t += i - 2);
+	}
+	return t;
+}
+function Y(e, t = 10, n = 4) {
+	let r = (e.size + n * 2) * t, i = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r} ${r}" width="${r}" height="${r}">`;
+	i += `<rect width="${r}" height="${r}" fill="white"/>`;
+	for (let r = 0; r < e.size; r++) for (let a = 0; a < e.size; a++) if (e.modules[r][a] === 1) {
+		let e = (a + n) * t, o = (r + n) * t;
+		i += `<rect x="${e}" y="${o}" width="${t}" height="${t}" fill="black"/>`;
+	}
+	return i += "</svg>", i;
 }
 //#endregion
 //#region src/components/PixelEditor.tsx
@@ -3518,7 +3518,11 @@ function Q({ grid: t, width: i, height: s, onChange: c, onResize: l, constrained
 							style: {
 								width: 48,
 								padding: 4,
-								boxSizing: "border-box"
+								boxSizing: "border-box",
+								background: "var(--qr-input-bg, #fff)",
+								color: "var(--qr-fg, #1a1a1a)",
+								border: "1px solid var(--qr-border, #ddd)",
+								borderRadius: 4
 							},
 							min: 1,
 							max: 40
@@ -3541,7 +3545,11 @@ function Q({ grid: t, width: i, height: s, onChange: c, onResize: l, constrained
 							style: {
 								width: 48,
 								padding: 4,
-								boxSizing: "border-box"
+								boxSizing: "border-box",
+								background: "var(--qr-input-bg, #fff)",
+								color: "var(--qr-fg, #1a1a1a)",
+								border: "1px solid var(--qr-border, #ddd)",
+								borderRadius: 4
 							},
 							min: 1,
 							max: 40
@@ -3552,7 +3560,11 @@ function Q({ grid: t, width: i, height: s, onChange: c, onResize: l, constrained
 						style: {
 							padding: "4px 8px",
 							fontSize: 12,
-							cursor: "pointer"
+							cursor: "pointer",
+							background: "var(--qr-input-bg, #fff)",
+							color: "var(--qr-fg, #1a1a1a)",
+							border: "1px solid var(--qr-border, #ddd)",
+							borderRadius: 4
 						},
 						children: "Clear"
 					}),
@@ -3561,7 +3573,11 @@ function Q({ grid: t, width: i, height: s, onChange: c, onResize: l, constrained
 						style: {
 							padding: "4px 8px",
 							fontSize: 12,
-							cursor: "pointer"
+							cursor: "pointer",
+							background: "var(--qr-input-bg, #fff)",
+							color: "var(--qr-fg, #1a1a1a)",
+							border: "1px solid var(--qr-border, #ddd)",
+							borderRadius: 4
 						},
 						children: "Fill"
 					})
@@ -3581,7 +3597,7 @@ function Q({ grid: t, width: i, height: s, onChange: c, onResize: l, constrained
 						display: "inline-grid",
 						gridTemplateColumns: `repeat(${i}, ${X}px)`,
 						gap: Z,
-						background: "#ccc",
+						background: "var(--qr-border, #ccc)",
 						padding: Z,
 						borderRadius: 4,
 						cursor: "crosshair",
@@ -3608,7 +3624,7 @@ function Q({ grid: t, width: i, height: s, onChange: c, onResize: l, constrained
 			/* @__PURE__ */ o("div", {
 				style: {
 					fontSize: 11,
-					color: "#999",
+					color: "var(--qr-muted, #999)",
 					marginTop: 4
 				},
 				children: [
@@ -3638,30 +3654,30 @@ function $(e, t, n) {
 }
 //#endregion
 //#region src/components/QRArtGenerator.tsx
-function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", defaultVersion: s = 5, defaultEcLevel: c = "L", showModuleMap: l = !0, className: u }) {
-	let [d, f] = r(n), [p, m] = r(s), [h, g] = r(c), [_, v] = r(void 0), [y, b] = r(!0), [x, S] = r(!0), C = J["R♥A"], [w, T] = r(C.grid.map((e) => [...e])), [E, D] = r(C.width), [O, k] = r(C.height), A = t(() => !y || E === 0 || O === 0 ? {
+function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", defaultVersion: s = 5, defaultEcLevel: c = "L", showModuleMap: l = !0, className: u, theme: d = "auto" }) {
+	let [f, p] = r(n), [m, h] = r(s), [g, _] = r(c), [v, y] = r(void 0), [b, x] = r(!0), [S, C] = r(!0), w = U["R♥A"], [T, E] = r(w.grid.map((e) => [...e])), [D, O] = r(w.width), [k, A] = r(w.height), j = t(() => !b || D === 0 || k === 0 ? {
 		row: 0,
 		col: 0
-	} : z(d, p, h, x ? E + 2 : E, x ? O + 2 : O) ?? {
+	} : q(f, m, g, S ? D + 2 : D, S ? k + 2 : k) ?? {
 		row: 0,
 		col: 0
 	}, [
-		d,
-		p,
-		h,
-		E,
-		O,
-		y,
-		x
-	]), j = t(() => {
-		if (!y) return [];
+		f,
+		m,
+		g,
+		D,
+		k,
+		b,
+		S
+	]), M = t(() => {
+		if (!b) return [];
 		let e = {
 			name: "custom",
-			width: E,
-			height: O,
-			grid: w
-		}, t = +!!x, n = +!!x, r = Y(e, A.row + t, A.col + n);
-		if (!x) return r;
+			width: D,
+			height: k,
+			grid: T
+		}, t = +!!S, n = +!!S, r = W(e, j.row + t, j.col + n);
+		if (!S) return r;
 		let i = new Set(r.map((e) => `${e.row},${e.col}`)), a = /* @__PURE__ */ new Set();
 		for (let e of r) if (e.value === 1) for (let t = -1; t <= 1; t++) for (let n = -1; n <= 1; n++) {
 			if (t === 0 && n === 0) continue;
@@ -3674,29 +3690,29 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 		}
 		return r;
 	}, [
-		y,
-		w,
-		E,
-		O,
-		A,
-		x
-	]), M = t(() => {
+		b,
+		T,
+		D,
+		k,
+		j,
+		S
+	]), N = t(() => {
 		try {
-			return y && j.length > 0 ? R({
-				urlPrefix: d,
-				version: p,
-				ecLevel: h,
-				artPixels: j,
-				maskPattern: _
+			return b && M.length > 0 ? K({
+				urlPrefix: f,
+				version: m,
+				ecLevel: g,
+				artPixels: M,
+				maskPattern: v
 			}) : {
-				grid: L({
-					data: d,
-					version: p,
-					ecLevel: h,
-					maskPattern: _
+				grid: G({
+					data: f,
+					version: m,
+					ecLevel: g,
+					maskPattern: v
 				}),
-				decodedUrl: d,
-				maskPattern: _ ?? 0,
+				decodedUrl: f,
+				maskPattern: v ?? 0,
 				overlayFlips: 0,
 				maxFlips: 0,
 				skippedFlips: 0,
@@ -3706,41 +3722,105 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 			return console.error("QR generation error:", e), null;
 		}
 	}, [
-		d,
-		p,
-		h,
-		_,
-		j,
-		y
-	]), N = t(() => {
+		f,
+		m,
+		g,
+		v,
+		M,
+		b
+	]), P = t(() => {
 		let e = /* @__PURE__ */ new Set();
-		if (!M || !("constrainedPixels" in M)) return e;
-		let t = M.constrainedPixels;
+		if (!N || !("constrainedPixels" in N)) return e;
+		let t = N.constrainedPixels;
 		for (let n of t) {
-			let [t, r] = n.split(",").map(Number), i = t - A.row - +!!x, a = r - A.col - +!!x;
-			i >= 0 && i < O && a >= 0 && a < E && e.add(`${i},${a}`);
+			let [t, r] = n.split(",").map(Number), i = t - j.row - +!!S, a = r - j.col - +!!S;
+			i >= 0 && i < k && a >= 0 && a < D && e.add(`${i},${a}`);
 		}
 		return e;
 	}, [
-		M,
-		A,
-		E,
-		O,
-		x
-	]), P = t(() => M ? H(M.grid, 10, 4) : "", [M]), F = e(() => {
-		if (!P) return;
-		let e = new Blob([P], { type: "image/svg+xml" }), t = URL.createObjectURL(e), n = document.createElement("a");
+		N,
+		j,
+		D,
+		k,
+		S
+	]), F = t(() => N ? Y(N.grid, 10, 4) : "", [N]), I = e(() => {
+		if (!F) return;
+		let e = new Blob([F], { type: "image/svg+xml" }), t = URL.createObjectURL(e), n = document.createElement("a");
 		n.href = t, n.download = "qr-art.svg", n.click(), URL.revokeObjectURL(t);
-	}, [P]);
-	return /* @__PURE__ */ a("div", {
-		className: u,
+	}, [F]), L = {
+		"--qr-bg": "var(--qr-theme-bg)",
+		"--qr-fg": "var(--qr-theme-fg)",
+		"--qr-muted": "var(--qr-theme-muted)",
+		"--qr-border": "var(--qr-theme-border)",
+		"--qr-input-bg": "var(--qr-theme-input-bg)",
+		"--qr-code-bg": "var(--qr-theme-code-bg)",
+		"--qr-preview-bg": "var(--qr-theme-preview-bg)"
+	}, R = d === "dark" ? "qr-art-dark" : d === "light" ? "qr-art-light" : "qr-art-auto";
+	return /* @__PURE__ */ o("div", {
+		className: `${R}${u ? ` ${u}` : ""}`,
 		style: {
+			...L,
 			padding: 24,
 			maxWidth: 1200,
 			margin: "0 auto",
-			fontFamily: "system-ui"
+			fontFamily: "system-ui",
+			color: "var(--qr-fg)"
 		},
-		children: /* @__PURE__ */ o("div", {
+		children: [/* @__PURE__ */ a("style", { children: `
+        .qr-art-light {
+          --qr-theme-bg: #ffffff;
+          --qr-theme-fg: #1a1a1a;
+          --qr-theme-muted: #666666;
+          --qr-theme-border: #dddddd;
+          --qr-theme-input-bg: #ffffff;
+          --qr-theme-code-bg: #f5f5f5;
+          --qr-theme-preview-bg: #ffffff;
+        }
+        .qr-art-dark {
+          --qr-theme-bg: transparent;
+          --qr-theme-fg: #e4e4e7;
+          --qr-theme-muted: #a1a1aa;
+          --qr-theme-border: #3f3f46;
+          --qr-theme-input-bg: #18181b;
+          --qr-theme-code-bg: #27272a;
+          --qr-theme-preview-bg: #ffffff;
+        }
+        .qr-art-auto {
+          --qr-theme-bg: #ffffff;
+          --qr-theme-fg: #1a1a1a;
+          --qr-theme-muted: #666666;
+          --qr-theme-border: #dddddd;
+          --qr-theme-input-bg: #ffffff;
+          --qr-theme-code-bg: #f5f5f5;
+          --qr-theme-preview-bg: #ffffff;
+        }
+        @media (prefers-color-scheme: dark) {
+          .qr-art-auto {
+            --qr-theme-bg: transparent;
+            --qr-theme-fg: #e4e4e7;
+            --qr-theme-muted: #a1a1aa;
+            --qr-theme-border: #3f3f46;
+            --qr-theme-input-bg: #18181b;
+            --qr-theme-code-bg: #27272a;
+            --qr-theme-preview-bg: #ffffff;
+          }
+        }
+        .${R} input, .${R} select, .${R} button {
+          color: var(--qr-theme-fg);
+          background: var(--qr-theme-input-bg);
+          border: 1px solid var(--qr-theme-border);
+          border-radius: 4px;
+        }
+        .${R} fieldset {
+          border-color: var(--qr-theme-border);
+        }
+        .${R} legend {
+          color: var(--qr-theme-fg);
+        }
+        .${R} label {
+          color: var(--qr-theme-fg);
+        }
+      ` }), /* @__PURE__ */ o("div", {
 			style: {
 				display: "flex",
 				gap: 32,
@@ -3755,26 +3835,30 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 				children: [
 					/* @__PURE__ */ o("fieldset", {
 						style: {
-							border: "1px solid #ddd",
+							border: "1px solid var(--qr-border)",
 							borderRadius: 8,
 							padding: 16,
 							marginBottom: 16
 						},
 						children: [/* @__PURE__ */ a("legend", { children: "URL Prefix" }), /* @__PURE__ */ a("input", {
 							type: "text",
-							value: d,
-							onChange: (e) => f(e.target.value),
+							value: f,
+							onChange: (e) => p(e.target.value),
 							style: {
 								width: "100%",
 								padding: 8,
 								fontSize: 14,
-								boxSizing: "border-box"
+								boxSizing: "border-box",
+								background: "var(--qr-input-bg)",
+								color: "var(--qr-fg)",
+								border: "1px solid var(--qr-border)",
+								borderRadius: 4
 							}
 						})]
 					}),
 					/* @__PURE__ */ o("fieldset", {
 						style: {
-							border: "1px solid #ddd",
+							border: "1px solid var(--qr-border)",
 							borderRadius: 8,
 							padding: 16,
 							marginBottom: 16
@@ -3787,13 +3871,17 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 							},
 							children: [
 								/* @__PURE__ */ o("label", { children: ["Version:", /* @__PURE__ */ a("select", {
-									value: p,
-									onChange: (e) => m(Number(e.target.value)),
+									value: m,
+									onChange: (e) => h(Number(e.target.value)),
 									style: {
 										display: "block",
 										width: "100%",
 										padding: 6,
-										marginTop: 4
+										marginTop: 4,
+										background: "var(--qr-input-bg)",
+										color: "var(--qr-fg)",
+										border: "1px solid var(--qr-border)",
+										borderRadius: 4
 									},
 									children: [
 										2,
@@ -3815,13 +3903,17 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 									}, e))
 								})] }),
 								/* @__PURE__ */ o("label", { children: ["EC Level:", /* @__PURE__ */ o("select", {
-									value: h,
-									onChange: (e) => g(e.target.value),
+									value: g,
+									onChange: (e) => _(e.target.value),
 									style: {
 										display: "block",
 										width: "100%",
 										padding: 6,
-										marginTop: 4
+										marginTop: 4,
+										background: "var(--qr-input-bg)",
+										color: "var(--qr-fg)",
+										border: "1px solid var(--qr-border)",
+										borderRadius: 4
 									},
 									children: [
 										/* @__PURE__ */ a("option", {
@@ -3843,13 +3935,17 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 									]
 								})] }),
 								/* @__PURE__ */ o("label", { children: ["Mask:", /* @__PURE__ */ o("select", {
-									value: _ === void 0 ? "auto" : _,
-									onChange: (e) => v(e.target.value === "auto" ? void 0 : Number(e.target.value)),
+									value: v === void 0 ? "auto" : v,
+									onChange: (e) => y(e.target.value === "auto" ? void 0 : Number(e.target.value)),
 									style: {
 										display: "block",
 										width: "100%",
 										padding: 6,
-										marginTop: 4
+										marginTop: 4,
+										background: "var(--qr-input-bg)",
+										color: "var(--qr-fg)",
+										border: "1px solid var(--qr-border)",
+										borderRadius: 4
 									},
 									children: [/* @__PURE__ */ a("option", {
 										value: "auto",
@@ -3873,7 +3969,7 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 					}),
 					/* @__PURE__ */ o("fieldset", {
 						style: {
-							border: "1px solid #ddd",
+							border: "1px solid var(--qr-border)",
 							borderRadius: 8,
 							padding: 16,
 							marginBottom: 16,
@@ -3890,11 +3986,11 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 								},
 								children: [/* @__PURE__ */ a("input", {
 									type: "checkbox",
-									checked: y,
-									onChange: (e) => b(e.target.checked)
+									checked: b,
+									onChange: (e) => x(e.target.checked)
 								}), "Enable art overlay"]
 							}),
-							y && /* @__PURE__ */ o(i, { children: [
+							b && /* @__PURE__ */ o(i, { children: [
 								/* @__PURE__ */ o("label", {
 									style: {
 										display: "flex",
@@ -3904,8 +4000,8 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 									},
 									children: [/* @__PURE__ */ a("input", {
 										type: "checkbox",
-										checked: x,
-										onChange: (e) => S(e.target.checked)
+										checked: S,
+										onChange: (e) => C(e.target.checked)
 									}), "White border around art"]
 								}),
 								/* @__PURE__ */ o("div", {
@@ -3929,12 +4025,16 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 												flex: 1,
 												padding: 6,
 												fontSize: 14,
-												boxSizing: "border-box"
+												boxSizing: "border-box",
+												background: "var(--qr-input-bg)",
+												color: "var(--qr-fg)",
+												border: "1px solid var(--qr-border)",
+												borderRadius: 4
 											},
 											onKeyDown: (e) => {
 												if (e.key === "Enter") {
-													let t = q(e.target.value);
-													t && (T(t.grid.map((e) => [...e])), D(t.width), k(t.height));
+													let t = H(e.target.value);
+													t && (E(t.grid.map((e) => [...e])), O(t.width), A(t.height));
 												}
 											},
 											id: "qr-art-text-input"
@@ -3942,13 +4042,17 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 											onClick: () => {
 												let e = document.getElementById("qr-art-text-input");
 												if (!e) return;
-												let t = q(e.value);
-												t && (T(t.grid.map((e) => [...e])), D(t.width), k(t.height));
+												let t = H(e.value);
+												t && (E(t.grid.map((e) => [...e])), O(t.width), A(t.height));
 											},
 											style: {
 												padding: "6px 12px",
 												cursor: "pointer",
-												fontSize: 13
+												fontSize: 13,
+												background: "var(--qr-input-bg)",
+												color: "var(--qr-fg)",
+												border: "1px solid var(--qr-border)",
+												borderRadius: 4
 											},
 											children: "Render"
 										})]
@@ -3965,47 +4069,51 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 									children: [/* @__PURE__ */ a("span", {
 										style: { fontSize: 13 },
 										children: "Presets:"
-									}), Object.entries(J).map(([e, t]) => /* @__PURE__ */ a("button", {
+									}), Object.entries(U).map(([e, t]) => /* @__PURE__ */ a("button", {
 										onClick: () => {
-											T(t.grid.map((e) => [...e])), D(t.width), k(t.height);
+											E(t.grid.map((e) => [...e])), O(t.width), A(t.height);
 										},
 										style: {
 											padding: "3px 8px",
 											fontSize: 11,
-											cursor: "pointer"
+											cursor: "pointer",
+											background: "var(--qr-input-bg)",
+											color: "var(--qr-fg)",
+											border: "1px solid var(--qr-border)",
+											borderRadius: 4
 										},
 										children: e
 									}, e))]
 								}),
 								/* @__PURE__ */ a(Q, {
-									grid: w,
-									width: E,
-									height: O,
-									onChange: T,
+									grid: T,
+									width: D,
+									height: k,
+									onChange: E,
 									onResize: (e, t) => {
-										T($(w, e, t)), D(e), k(t);
+										E($(T, e, t)), O(e), A(t);
 									},
-									constrainedCells: N
+									constrainedCells: P
 								}),
 								/* @__PURE__ */ o("div", {
 									style: {
 										fontSize: 12,
-										color: "#666",
+										color: "var(--qr-muted)",
 										marginTop: 8
 									},
 									children: [
 										"Auto-placed at row ",
-										A.row,
+										j.row,
 										", col ",
-										A.col,
-										N.size > 0 && /* @__PURE__ */ o("span", {
+										j.col,
+										P.size > 0 && /* @__PURE__ */ o("span", {
 											style: { color: "#e74c3c" },
 											children: [
 												" ",
 												"· ",
-												N.size,
+												P.size,
 												" pixel",
-												N.size > 1 ? "s" : "",
+												P.size > 1 ? "s" : "",
 												" can't be satisfied (shown in red)"
 											]
 										})
@@ -4014,9 +4122,9 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 							] })
 						]
 					}),
-					M && /* @__PURE__ */ o("fieldset", {
+					N && /* @__PURE__ */ o("fieldset", {
 						style: {
-							border: "1px solid #ddd",
+							border: "1px solid var(--qr-border)",
 							borderRadius: 8,
 							padding: 16,
 							marginBottom: 16
@@ -4029,13 +4137,14 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 									style: {
 										display: "block",
 										padding: 8,
-										background: "#f5f5f5",
+										background: "var(--qr-code-bg)",
 										borderRadius: 4,
 										marginTop: 4,
 										wordBreak: "break-all",
-										fontSize: 12
+										fontSize: 12,
+										color: "var(--qr-fg)"
 									},
-									children: d + ("suffixBytes" in M ? M.suffixBytes.map((e) => e >= 48 && e <= 57 || e >= 65 && e <= 90 || e >= 97 && e <= 122 || [
+									children: f + ("suffixBytes" in N ? N.suffixBytes.map((e) => e >= 48 && e <= 57 || e >= 65 && e <= 90 || e >= 97 && e <= 122 || [
 										45,
 										95,
 										46,
@@ -4043,12 +4152,12 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 									].includes(e) ? String.fromCharCode(e) : "%" + e.toString(16).padStart(2, "0").toUpperCase()).join("") : "")
 								})]
 							}),
-							"suffixBytes" in M && /* @__PURE__ */ o("div", {
+							"suffixBytes" in N && /* @__PURE__ */ o("div", {
 								style: { marginBottom: 8 },
 								children: [
 									/* @__PURE__ */ a("strong", { children: "Suffix hex:" }),
 									" ",
-									/* @__PURE__ */ a("code", { children: M.suffixBytes.map((e) => e.toString(16).padStart(2, "0")).join(" ") })
+									/* @__PURE__ */ a("code", { children: N.suffixBytes.map((e) => e.toString(16).padStart(2, "0")).join(" ") })
 								]
 							}),
 							/* @__PURE__ */ o("div", {
@@ -4056,7 +4165,7 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 								children: [
 									/* @__PURE__ */ a("strong", { children: "Mask Pattern:" }),
 									" ",
-									M.maskPattern
+									N.maskPattern
 								]
 							}),
 							/* @__PURE__ */ o("div", {
@@ -4064,26 +4173,30 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 								children: [
 									/* @__PURE__ */ a("strong", { children: "EC Overlay:" }),
 									" ",
-									M.overlayFlips,
+									N.overlayFlips,
 									" flips (max ",
-									M.maxFlips,
+									N.maxFlips,
 									" correctable)",
-									M.skippedFlips > 0 && /* @__PURE__ */ o("span", {
+									N.skippedFlips > 0 && /* @__PURE__ */ o("span", {
 										style: { color: "#e67e22" },
 										children: [
 											" · ",
-											M.skippedFlips,
+											N.skippedFlips,
 											" skipped"
 										]
 									}),
-									M.overlayFlips <= M.maxFlips ? " ✅" : " ⚠️"
+									N.overlayFlips <= N.maxFlips ? " ✅" : " ⚠️"
 								]
 							}),
 							/* @__PURE__ */ a("button", {
-								onClick: F,
+								onClick: I,
 								style: {
 									padding: "8px 16px",
-									cursor: "pointer"
+									cursor: "pointer",
+									background: "var(--qr-input-bg)",
+									color: "var(--qr-fg)",
+									border: "1px solid var(--qr-border)",
+									borderRadius: 4
 								},
 								children: "Download SVG"
 							})
@@ -4102,35 +4215,38 @@ function ce({ defaultUrl: n = "https://alexkafer.com/labs/qr-art?code=", default
 					},
 					children: [
 						/* @__PURE__ */ a("h3", {
-							style: { marginTop: 0 },
+							style: {
+								marginTop: 0,
+								color: "var(--qr-fg)"
+							},
 							children: "Preview"
 						}),
-						P ? /* @__PURE__ */ a("div", {
-							dangerouslySetInnerHTML: { __html: P },
+						F ? /* @__PURE__ */ a("div", {
+							dangerouslySetInnerHTML: { __html: F },
 							style: {
-								background: "white",
+								background: "var(--qr-preview-bg)",
 								padding: 16,
 								borderRadius: 8,
-								border: "1px solid #ddd"
+								border: "1px solid var(--qr-border)"
 							}
 						}) : /* @__PURE__ */ a("div", {
 							style: {
 								padding: 40,
 								textAlign: "center",
-								color: "#999",
-								border: "1px solid #ddd",
+								color: "var(--qr-muted)",
+								border: "1px solid var(--qr-border)",
 								borderRadius: 8
 							},
 							children: "Error generating QR code"
 						}),
-						l && M && /* @__PURE__ */ a(le, {
-							grid: M.grid,
-							artPixels: j
+						l && N && /* @__PURE__ */ a(le, {
+							grid: N.grid,
+							artPixels: M
 						})
 					]
 				})
 			})]
-		})
+		})]
 	});
 }
 function le({ grid: e, artPixels: t }) {
@@ -4158,7 +4274,7 @@ function le({ grid: e, artPixels: t }) {
 					display: "inline-grid",
 					gridTemplateColumns: `repeat(${e.size}, ${r}px)`,
 					gap: 1,
-					background: "#ccc",
+					background: "var(--qr-border, #ccc)",
 					padding: 1,
 					borderRadius: 4
 				},
@@ -4215,4 +4331,4 @@ function le({ grid: e, artPixels: t }) {
 	});
 }
 //#endregion
-export { J as PIXEL_ARTS, Q as PixelEditor, ce as QRArtGenerator, Y as artToPixels, se as createEmptyGrid, z as findOptimalPosition, L as generateQR, R as generateQRWithArt, H as gridToSVG, $ as resizeGrid, q as textToPixelArt };
+export { U as PIXEL_ARTS, Q as PixelEditor, ce as QRArtGenerator, W as artToPixels, se as createEmptyGrid, q as findOptimalPosition, G as generateQR, K as generateQRWithArt, Y as gridToSVG, $ as resizeGrid, H as textToPixelArt };

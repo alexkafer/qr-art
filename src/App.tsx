@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { generateQR, generateQRWithArt, findOptimalPosition, gridToSVG, type ArtPixel } from './qr/engine'
+import { generateQR, generateQRWithArt, findOptimalPosition, findBestConfiguration, gridToSVG, type ArtPixel, type BestConfigResult } from './qr/engine'
 import { PIXEL_ARTS, artToPixels, textToPixelArt } from './qr/pixelArt'
 import { PixelEditor, createEmptyGrid, resizeGrid } from './components/PixelEditor'
 import type { ErrorCorrectionLevel, QRGrid } from './qr/types'
@@ -23,6 +23,9 @@ function App() {
   const [maskPattern, setMaskPattern] = useState<number | undefined>(undefined)
   const [useArt, setUseArt] = useState(true)
   const [artBorder, setArtBorder] = useState(true)
+  const [autoVersion, setAutoVersion] = useState(false)
+  const [bestConfig, setBestConfig] = useState<BestConfigResult | null>(null)
+  const [searchingBest, setSearchingBest] = useState(false)
 
   // Multi-layer state
   const defaultArt = PIXEL_ARTS['R♥A']

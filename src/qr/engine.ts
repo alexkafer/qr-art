@@ -11,6 +11,7 @@ import {
   placeFormatInfo,
   getMaskBit,
 } from './placement';
+import { artToPixels } from './pixelArt';
 
 export interface GenerateOptions {
   data: string;
@@ -127,6 +128,151 @@ export function generateQRWithArt(options: ReverseOptions): {
   }
 
   return bestResult!;
+}
+
+export interface BestConfigResult {
+  version: number;
+  ecLevel: ErrorCorrectionLevel;
+  maskPattern: number;
+  grid: QRGrid;
+  decodedUrl: string;
+  suffixBytes: number[];
+  overlayFlips: number;
+  maxFlips: number;
+  skippedFlips: number;
+  constrainedPixels: Set<string>;
+  blackPixelCount: number;
+  layerPositions: ({ row: number; col: number } | null)[];
+}
+
+/**
+ * Find the best QR configuration across all versions and EC levels.
+ * For each combination, auto-places art layers greedily, generates the QR,
+ * and scores by: valid (no skipped flips) > fewer black pixels > smaller version.
+ * 
+ * @param layers - Art layers in priority order, each with grid/width/height
+ * @param artBorder - Whether to include 1px white border around art
+ */
+export function findBestConfiguration(
+  urlPrefix: string,
+  layers: { grid: number[][]; width: number; height: number }[],
+  artBorder: boolean,
+  versions?: number[],
+  ecLevels?: ErrorCorrectionLevel[],
+): BestConfigResult | null {
+  const versionsToTry = versions ?? [2, 3, 4, 5, 6];
+  const ecLevelsToTry: ErrorCorrectionLevel[] = ecLevels ?? ['L', 'M', 'Q', 'H'];
+
+  let best: BestConfigResult | null = null;
+
+  for (const version of versionsToTry) {
+    for (const ecLevel of ecLevelsToTry) {
+      // Check if prefix even fits
+      const ver = getVersion(version);
+      const totalDataCodewords = ver.totalDataCodewords[ecLevel];
+      const maxChars = Math.floor((totalDataCodewords * 8 - 12) / 8);
+      if (urlPrefix.length >= maxChars) continue; // prefix alone fills the capacity
+
+      // Place layers greedily
+      const occupiedCells = new Set<string>();
+      const layerPositions: ({ row: number; col: number } | null)[] = [];
+      const allArtPixels: ArtPixel[] = [];
+
+      for (const layer of layers) {
+        const bw = artBorder ? layer.width + 2 : layer.width;
+        const bh = artBorder ? layer.height + 2 : layer.height;
+        const pos = findOptimalPosition(urlPrefix, version, ecLevel, bw, bh, occupiedCells);
+        layerPositions.push(pos);
+
+        if (pos) {
+          // Mark occupied
+          for (let r = 0; r < bh; r++) {
+            for (let c = 0; c < bw; c++) {
+              occupiedCells.add(`${pos.row + r},${pos.col + c}`);
+            }
+          }
+
+          // Build pixels for this layer
+          const rowOffset = artBorder ? 1 : 0;
+          const colOffset = artBorder ? 1 : 0;
+          const art = { name: '', width: layer.width, height: layer.height, grid: layer.grid };
+          const pixels = artToPixels(art, pos.row + rowOffset, pos.col + colOffset);
+
+          if (artBorder) {
+            const artSet = new Set(pixels.map(p => `${p.row},${p.col}`));
+            const borderSet = new Set<string>();
+            for (const pixel of pixels) {
+              if (pixel.value !== 1) continue;
+              for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                  if (dr === 0 && dc === 0) continue;
+                  const nr = pixel.row + dr;
+                  const nc = pixel.col + dc;
+                  const key = `${nr},${nc}`;
+                  if (!artSet.has(key) && !borderSet.has(key)) {
+                    borderSet.add(key);
+                    pixels.push({ row: nr, col: nc, value: 0 });
+                  }
+                }
+              }
+            }
+          }
+
+          allArtPixels.push(...pixels);
+        }
+      }
+
+      // Skip if no layers could be placed at all
+      if (allArtPixels.length === 0) continue;
+
+      // Generate QR with art
+      try {
+        const result = generateQRWithArt({
+          urlPrefix,
+          version,
+          ecLevel,
+          artPixels: allArtPixels,
+        });
+
+        const isValid = result.skippedFlips === 0;
+        const allLayersPlaced = layerPositions.every(p => p !== null);
+
+        // Scoring: valid + all placed > valid > fewer black pixels > smaller version
+        const isBetter = !best || (
+          // First priority: all layers placed and valid (no skipped flips)
+          (allLayersPlaced && isValid && (!best || !best.layerPositions.every(p => p !== null) || best.skippedFlips > 0)) ||
+          // Second: if both are equally valid/placed, prefer fewer black pixels
+          (allLayersPlaced === best.layerPositions.every(p => p !== null) &&
+           isValid === (best.skippedFlips === 0) && (
+            result.blackPixelCount < best.blackPixelCount ||
+            (result.blackPixelCount === best.blackPixelCount && version < best.version)
+          ))
+        );
+
+        if (isBetter) {
+          best = {
+            version,
+            ecLevel,
+            maskPattern: result.maskPattern,
+            grid: result.grid,
+            decodedUrl: result.decodedUrl,
+            suffixBytes: result.suffixBytes,
+            overlayFlips: result.overlayFlips,
+            maxFlips: result.maxFlips,
+            skippedFlips: result.skippedFlips,
+            constrainedPixels: result.constrainedPixels,
+            blackPixelCount: result.blackPixelCount,
+            layerPositions,
+          };
+        }
+      } catch {
+        // Skip invalid configurations
+        continue;
+      }
+    }
+  }
+
+  return best;
 }
 
 /**

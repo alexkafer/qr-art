@@ -10,5 +10,7 @@ export interface QRArtGeneratorProps {
     showModuleMap?: boolean;
     /** Custom CSS class name for the root container */
     className?: string;
+    /** Color theme: 'light', 'dark', or 'auto' (respects prefers-color-scheme) */
+    theme?: 'light' | 'dark' | 'auto';
 }
-export declare function QRArtGenerator({ defaultUrl, defaultVersion, defaultEcLevel, showModuleMap, className, }: QRArtGeneratorProps): import("react").JSX.Element;
+export declare function QRArtGenerator({ defaultUrl, defaultVersion, defaultEcLevel, showModuleMap, className, theme, }: QRArtGeneratorProps): import("react").JSX.Element;

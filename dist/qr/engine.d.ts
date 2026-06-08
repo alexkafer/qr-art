@@ -43,6 +43,36 @@ export declare function generateQRWithArt(options: ReverseOptions): {
     constrainedPixels: Set<string>;
     blackPixelCount: number;
 };
+export interface BestConfigResult {
+    version: number;
+    ecLevel: ErrorCorrectionLevel;
+    maskPattern: number;
+    grid: QRGrid;
+    decodedUrl: string;
+    suffixBytes: number[];
+    overlayFlips: number;
+    maxFlips: number;
+    skippedFlips: number;
+    constrainedPixels: Set<string>;
+    blackPixelCount: number;
+    layerPositions: ({
+        row: number;
+        col: number;
+    } | null)[];
+}
+/**
+ * Find the best QR configuration across all versions and EC levels.
+ * For each combination, auto-places art layers greedily, generates the QR,
+ * and scores by: valid (no skipped flips) > fewer black pixels > smaller version.
+ *
+ * @param layers - Art layers in priority order, each with grid/width/height
+ * @param artBorder - Whether to include 1px white border around art
+ */
+export declare function findBestConfiguration(urlPrefix: string, layers: {
+    grid: number[][];
+    width: number;
+    height: number;
+}[], artBorder: boolean, versions?: number[], ecLevels?: ErrorCorrectionLevel[]): BestConfigResult | null;
 /**
  * Find the optimal position for art within the QR grid.
  * Tries all valid positions and returns the one with fewest overlay flips.
